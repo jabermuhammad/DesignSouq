@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Haat</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a href="/" class="logo">Design Haat</a>
+    <div class="top-actions">
+        {% if auth.is_logged_in %}
+            <a href="{{ auth.profile_url }}" class="profile-chip" title="{{ auth.name }}">
+                <img src="{{ auth.avatar_url }}" alt="{{ auth.name }}">
+            </a>
+            <a href="{{ auth.profile_url }}" class="chip">My Profile</a>
+            <a href="/logout" class="chip">Logout</a>
+        {% else %}
+            <div class="account-wrap">
+                <button id="accountBtn" class="chip solid" type="button">Account</button>
+                <div id="accountMenu" class="account-menu">
+                    <a href="/login">Login</a>
+                    <a href="/signup">Sign Up</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</header>
+
+<section class="cover">
+    <div class="cover-overlay"></div>
+    <div class="search-box">
+        <form method="get" action="/" class="search-form">
+            <input id="searchInput" type="text" name="q" value="{{ q }}" placeholder="Search by skill or category">
+            <select name="category">
+                <option value="">All Categories</option>
+                {% for c in categories %}
+                <option value="{{ c }}" {% if selected_category == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Search</button>
+        </form>
+        <ul id="suggestions" class="suggestions">
+            {% for s in suggestions %}<li>{{ s }}</li>{% endfor %}
+        </ul>
+    </div>
+</section>
+
+<main class="container">
+    <div class="gallery-grid">
+        {% for project in projects %}
+        <article class="card project-card">
+            <div class="thumb-wrap thumbnail">
+                <img src="/static/images/{{ project.image_filename }}" alt="{{ project.title }}" class="thumb">
+                <div class="thumb-title project-title-overlay">{{ project.title }}</div>
+            </div>
+
+            <div class="designer-row">
+                <div class="designer-info">
+                    <a href="/designer/{{ project.designer.id }}" class="designer-link designer-name">{{ project.designer.full_name }}</a>
+                    <a href="/designer/{{ project.designer.id }}" class="designer-avatar-link" data-designer-id="{{ project.designer.id }}" aria-label="{{ project.designer.full_name }} profile">
+                        <img class="designer-avatar" src="/static/images/{{ project.designer.profile_image }}" alt="{{ project.designer.full_name }}">
+                    </a>
+                    <div class="popup designer-popup"></div>
+                </div>
+
+                <div class="card-actions">
+                    {% if viewer_id %}
+                    <form method="post" action="/viewer/{{ viewer_id }}/follow/{{ project.designer.id }}"><button type="submit">Follow</button></form>
+                    <form method="post" action="/viewer/{{ viewer_id }}/like/{{ project.id }}"><button type="submit">Like</button></form>
+                    <form method="post" action="/viewer/{{ viewer_id }}/wishlist/{{ project.id }}"><button type="submit">Wishlist</button></form>
+                    {% endif %}
+                </div>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</main>
+
+<footer class="site-footer">
+    <p>&copy; Jaber Muhammad. All rights reserved.</p>
+</footer>
+
+<div id="imageViewer" class="image-viewer">
+  <span class="viewer-close">&times;</span>
+  <img id="viewerImage" src="" alt="Fullscreen preview" />
+</div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
+
+
+
+

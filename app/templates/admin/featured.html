@@ -1,0 +1,45 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Featured Projects{% endblock %}
+{% block page_title %}Featured Projects{% endblock %}
+
+{% block content %}
+<section class="glass-card table-wrap">
+    <form class="search-row" method="get" action="/admin/featured">
+        <input type="text" name="q" value="{{ q }}" placeholder="Search by project, category, designer">
+        <button type="submit">Search</button>
+    </form>
+
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>ID</th><th>Project</th><th>Designer</th><th>Category</th><th>Status</th><th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for p in projects %}
+        {% set is_featured = p.id in featured_ids %}
+        <tr>
+            <td>{{ p.id }}</td>
+            <td>{{ p.title }}</td>
+            <td><a href="/designer/{{ p.designer_id }}" target="_blank">{{ p.designer.full_name }}</a></td>
+            <td>{{ p.category }}</td>
+            <td>{% if is_featured %}<span class="badge badge-featured">Featured</span>{% else %}<span class="badge">Normal</span>{% endif %}</td>
+            <td class="action-cell">
+                {% if is_featured %}
+                <form method="post" action="/admin/featured/{{ p.id }}/unmark" class="inline-form">
+                    <button type="submit" class="btn-warn">Remove Featured</button>
+                </form>
+                {% else %}
+                <form method="post" action="/admin/featured/{{ p.id }}/mark" class="inline-form">
+                    <button type="submit" class="btn-secondary">Mark Featured</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty-cell">No projects found</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

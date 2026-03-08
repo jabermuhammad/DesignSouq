@@ -1,0 +1,58 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Projects{% endblock %}
+{% block page_title %}Project Moderation{% endblock %}
+
+{% block content %}
+<section class="glass-card table-wrap">
+    <form class="search-row" method="get" action="/admin/projects">
+        <input type="text" name="q" value="{{ q }}" placeholder="Search by title, category, tags, designer">
+        <button type="submit">Search</button>
+    </form>
+
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>ID</th><th>Title</th><th>Category</th><th>Designer</th><th>Featured</th><th>Reports</th><th>Likes</th><th>Wishlist</th><th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for p in projects %}
+        {% set is_featured = p.id in featured_ids %}
+        <tr>
+            <td>{{ p.id }}</td>
+            <td>{{ p.title }}</td>
+            <td>{{ p.category }}</td>
+            <td><a href="/designer/{{ p.designer_id }}" target="_blank">{{ p.designer.full_name }}</a></td>
+            <td>
+                {% if is_featured %}
+                <span class="badge badge-featured">Featured</span>
+                {% else %}
+                <span class="badge">Normal</span>
+                {% endif %}
+            </td>
+            <td>{{ report_counts.get(p.id, 0) }}</td>
+            <td>{{ p.liked_by|length }}</td>
+            <td>{{ p.wishlisted_by|length }}</td>
+            <td class="action-cell">
+                <a class="btn-secondary" href="/designer/{{ p.designer_id }}#project-{{ p.id }}" target="_blank">View</a>
+                {% if is_featured %}
+                <form method="post" action="/admin/featured/{{ p.id }}/unmark" class="inline-form">
+                    <button type="submit" class="btn-warn">Unfeature</button>
+                </form>
+                {% else %}
+                <form method="post" action="/admin/featured/{{ p.id }}/mark" class="inline-form">
+                    <button type="submit" class="btn-warn">Feature</button>
+                </form>
+                {% endif %}
+                <form method="post" action="/admin/projects/{{ p.id }}/delete" data-confirm="Delete project '{{ p.title }}'?" class="inline-form">
+                    <button type="submit" class="btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="empty-cell">No projects found</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

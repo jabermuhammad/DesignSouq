@@ -1,0 +1,64 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}Report Moderation{% endblock %}
+
+{% block content %}
+<section class="glass-card table-wrap">
+    <form class="search-row search-row-3" method="get" action="/admin/reports">
+        <select name="status">
+            <option value="" {% if not status %}selected{% endif %}>All Statuses</option>
+            <option value="open" {% if status == 'open' %}selected{% endif %}>Open</option>
+            <option value="ignored" {% if status == 'ignored' %}selected{% endif %}>Ignored</option>
+            <option value="actioned" {% if status == 'actioned' %}selected{% endif %}>Actioned</option>
+        </select>
+        <select name="target_type">
+            <option value="" {% if not target_type %}selected{% endif %}>All Targets</option>
+            <option value="designer" {% if target_type == 'designer' %}selected{% endif %}>Designer</option>
+            <option value="project" {% if target_type == 'project' %}selected{% endif %}>Project</option>
+        </select>
+        <button type="submit">Filter</button>
+    </form>
+
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>ID</th><th>Target</th><th>Reason</th><th>Status</th><th>Reported At</th><th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for r in reports %}
+        <tr>
+            <td>#{{ r.id }}</td>
+            <td>
+                {% if r.target_type == 'designer' %}
+                    {% set d = designer_map.get(r.target_id) %}
+                    Designer: {% if d %}<a href="/designer/{{ d.id }}" target="_blank">{{ d.full_name }}</a>{% else %}ID {{ r.target_id }}{% endif %}
+                {% else %}
+                    {% set p = project_map.get(r.target_id) %}
+                    Project: {% if p %}<a href="/designer/{{ p.designer_id }}#project-{{ p.id }}" target="_blank">{{ p.title }}</a>{% else %}ID {{ r.target_id }}{% endif %}
+                {% endif %}
+            </td>
+            <td>{{ r.reason }}</td>
+            <td><span class="badge {% if r.status == 'open' %}badge-open{% endif %}">{{ r.status }}</span></td>
+            <td>{{ r.created_at }}</td>
+            <td class="action-cell">
+                <form method="post" action="/admin/reports/{{ r.id }}/ignore" class="inline-form">
+                    <button type="submit" class="btn-secondary">Ignore</button>
+                </form>
+                <form method="post" action="/admin/reports/{{ r.id }}/ban" data-confirm="Ban action from this report?" class="inline-form">
+                    <button type="submit" class="btn-warn">Ban</button>
+                </form>
+                {% if r.target_type == 'project' %}
+                <form method="post" action="/admin/reports/{{ r.id }}/remove-project" data-confirm="Remove this reported project?" class="inline-form">
+                    <button type="submit" class="btn-danger">Remove</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty-cell">No reports found</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}Admin Settings{% endblock %}
+
+{% block content %}
+<section class="settings-v2-grid">
+    <article class="glass-card settings-v2-hero">
+        <div class="settings-v2-hero-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 1 1-4 0v-.2a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 1 1 0-4h.2a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 1 1 4 0v.2a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 1 1 0 4h-.2a1 1 0 0 0-.9.6Z"/></svg>
+        </div>
+        <div>
+            <h3>Security Configuration</h3>
+            <p>Configure these environment variables on deployment. Existing auth logic and routes remain unchanged.</p>
+        </div>
+    </article>
+
+    <article class="glass-card settings-v2-card">
+        <div class="settings-v2-card-head">
+            <h4>
+                <span class="settings-v2-head-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3 4.8 6.2v5.7c0 4.9 3 9.5 7.2 11.1 4.2-1.6 7.2-6.2 7.2-11.1V6.2L12 3Z"/><path d="m9.5 12 1.8 1.8 3.6-3.6"/></svg>
+                </span>
+                Environment Variables
+            </h4>
+            <span class="settings-v2-badge">Required</span>
+        </div>
+
+        <div class="settings-v2-vars">
+            <div class="settings-v2-var-row">
+                <div class="settings-v2-var-label-wrap">
+                    <label>Admin Username</label>
+                    <code class="settings-v2-var-pill" data-copy-value="ADMIN_USERNAME">ADMIN_USERNAME</code>
+                </div>
+                <button type="button" class="settings-v2-copy" data-copy-value="ADMIN_USERNAME">Copy</button>
+            </div>
+
+            <div class="settings-v2-var-row">
+                <div class="settings-v2-var-label-wrap">
+                    <label>
+                        Password Hash
+                        <span class="settings-v2-tip" tabindex="0" aria-label="PBKDF2 info">i
+                            <span class="settings-v2-tip-content">Preferred: use PBKDF2 hash from the existing auth helper.</span>
+                        </span>
+                    </label>
+                    <code class="settings-v2-var-pill" data-copy-value="ADMIN_PASSWORD_HASH">ADMIN_PASSWORD_HASH</code>
+                </div>
+                <button type="button" class="settings-v2-copy" data-copy-value="ADMIN_PASSWORD_HASH">Copy</button>
+            </div>
+
+            <div class="settings-v2-var-row">
+                <div class="settings-v2-var-label-wrap">
+                    <label>
+                        Fallback Password
+                        <span class="settings-v2-tip" tabindex="0" aria-label="Fallback password info">i
+                            <span class="settings-v2-tip-content">Fallback only: plain password variable, used when hash is not set.</span>
+                        </span>
+                    </label>
+                    <code class="settings-v2-var-pill" data-copy-value="ADMIN_PASSWORD">ADMIN_PASSWORD</code>
+                </div>
+                <button type="button" class="settings-v2-copy" data-copy-value="ADMIN_PASSWORD">Copy</button>
+            </div>
+        </div>
+    </article>
+
+    <article class="glass-card settings-v2-card">
+        <div class="settings-v2-card-head">
+            <h4>
+                <span class="settings-v2-head-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 2 3 7v6c0 5 3.8 9 9 9s9-4 9-9V7l-9-5Z"/><path d="M9.2 12.4 11 14l3.8-3.8"/></svg>
+                </span>
+                Operational Notes
+            </h4>
+            <span class="settings-v2-badge settings-v2-badge-info">Info</span>
+        </div>
+
+        <ul class="settings-v2-note-list">
+            <li>Set variables in deployment environment, not in templates.</li>
+            <li>`ADMIN_PASSWORD_HASH` is preferred for security.</li>
+            <li>If no password variable is set, admin login is disabled by design.</li>
+        </ul>
+        <p class="muted">No backend/auth logic has been altered by this UI update.</p>
+    </article>
+</section>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block page_title %}Platform Analytics{% endblock %}
+
+{% block content %}
+<section class="metric-grid analytics-grid">
+    <article class="metric-card glass-card metric-variant-1">
+        <div class="metric-head"><div class="metric-icon">US</div><span>Total Users</span></div>
+        <strong>{{ metrics.total_users }}</strong>
+        <small class="trend">All time users</small>
+    </article>
+    <article class="metric-card glass-card metric-variant-2">
+        <div class="metric-head"><div class="metric-icon">DS</div><span>Total Designers</span></div>
+        <strong>{{ metrics.total_designers }}</strong>
+        <small class="trend">+{{ metrics.weekly_new_designers }} this week</small>
+    </article>
+    <article class="metric-card glass-card metric-variant-3">
+        <div class="metric-head"><div class="metric-icon">VW</div><span>Total Viewers</span></div>
+        <strong>{{ metrics.total_viewers }}</strong>
+        <small class="trend">+{{ metrics.weekly_new_viewers }} this week</small>
+    </article>
+    <article class="metric-card glass-card metric-variant-4">
+        <div class="metric-head"><div class="metric-icon">PJ</div><span>Total Projects</span></div>
+        <strong>{{ metrics.total_projects }}</strong>
+        <small class="trend">+{{ metrics.weekly_new_projects }} this week</small>
+    </article>
+    <article class="metric-card glass-card metric-variant-6">
+        <div class="metric-head"><div class="metric-icon">RP</div><span>Total Reports</span></div>
+        <strong>{{ metrics.total_reports }}</strong>
+        <small class="trend">+{{ metrics.weekly_new_reports }} this week</small>
+    </article>
+</section>
+
+<section class="growth-grid">
+    <article class="glass-card growth-card">
+        <h3>7-Day Growth</h3>
+        <ul>
+            <li>New Designers: <strong>{{ metrics.weekly_new_designers }}</strong></li>
+            <li>New Viewers: <strong>{{ metrics.weekly_new_viewers }}</strong></li>
+            <li>New Projects: <strong>{{ metrics.weekly_new_projects }}</strong></li>
+            <li>New Reports: <strong>{{ metrics.weekly_new_reports }}</strong></li>
+        </ul>
+    </article>
+
+    <article class="glass-card growth-card">
+        <h3>30-Day Growth</h3>
+        <ul>
+            <li>New Designers: <strong>{{ metrics.monthly_new_designers }}</strong></li>
+            <li>New Viewers: <strong>{{ metrics.monthly_new_viewers }}</strong></li>
+            <li>New Projects: <strong>{{ metrics.monthly_new_projects }}</strong></li>
+            <li>New Reports: <strong>{{ metrics.monthly_new_reports }}</strong></li>
+        </ul>
+    </article>
+</section>
+
+<section class="chart-grid">
+    <article class="glass-card chart-panel">
+        <div class="panel-head">
+            <h3>Visitors per Day</h3>
+            <small>Last 14 days</small>
+        </div>
+        <canvas id="adminVisitorsChart" height="110"></canvas>
+    </article>
+
+    <article class="glass-card chart-panel">
+        <div class="panel-head">
+            <h3>Projects Uploaded per Day</h3>
+            <small>Last 14 days</small>
+        </div>
+        <canvas id="adminProjectsChart" height="110"></canvas>
+    </article>
+
+    <article class="glass-card chart-panel">
+        <div class="panel-head">
+            <h3>Reports Trend</h3>
+            <small>Last 14 days</small>
+        </div>
+        <canvas id="adminReportsChart" height="110"></canvas>
+    </article>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="chartData" type="application/json">{{ chart_data | tojson }}</script>
+{% endblock %}

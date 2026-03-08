@@ -1,0 +1,60 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Designers{% endblock %}
+{% block page_title %}Designers{% endblock %}
+
+{% block content %}
+<section class="glass-card table-wrap">
+    <form class="search-row" method="get" action="/admin/designers">
+        <input type="text" name="q" value="{{ q }}" placeholder="Search by name, username, email, skill">
+        <button type="submit">Search</button>
+    </form>
+
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>ID</th><th>Name</th><th>Username</th><th>Email</th><th>Skills</th><th>Status</th><th>Projects</th><th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for d in designers %}
+        {% set ban = ban_map.get(d.id) %}
+        {% set is_banned = ban and ban.is_active == 1 %}
+        <tr>
+            <td>{{ d.id }}</td>
+            <td>{{ d.full_name }}</td>
+            <td>{{ d.username or '-' }}</td>
+            <td>{{ d.email }}</td>
+            <td>{{ d.skills or '-' }}</td>
+            <td>
+                {% if is_banned %}
+                <span class="badge badge-danger">Banned</span>
+                <small class="cell-sub">{{ ban.reason or 'No reason' }}</small>
+                {% else %}
+                <span class="badge badge-ok">Active</span>
+                {% endif %}
+            </td>
+            <td>{{ d.projects|length }}</td>
+            <td class="action-cell">
+                <a class="btn-secondary" href="/designer/{{ d.id }}" target="_blank">Profile</a>
+                {% if is_banned %}
+                <form method="post" action="/admin/designers/{{ d.id }}/unban" data-confirm="Unban designer '{{ d.full_name }}'?" class="inline-form">
+                    <button type="submit" class="btn-warn">Unban</button>
+                </form>
+                {% else %}
+                <form method="post" action="/admin/designers/{{ d.id }}/ban" data-confirm="Ban designer '{{ d.full_name }}'?" class="inline-form inline-form-wide">
+                    <input type="text" name="reason" placeholder="Ban reason" required>
+                    <button type="submit" class="btn-warn">Ban</button>
+                </form>
+                {% endif %}
+                <form method="post" action="/admin/designers/{{ d.id }}/delete" data-confirm="Delete designer '{{ d.full_name }}'?" class="inline-form">
+                    <button type="submit" class="btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="empty-cell">No designers found</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

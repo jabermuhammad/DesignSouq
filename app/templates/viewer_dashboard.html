@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viewer Dashboard | Design Haat</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a href="/" class="logo">Design Haat</a>
+    <div class="top-actions">
+        <a href="/logout" class="chip">Logout</a>
+    </div>
+</header>
+
+<main class="container dashboard-v2 dashx-shell">
+    <aside class="dashboard-v2-sidebar premium-card dashx-sidebar">
+        <div class="dashx-sidebar-glow" aria-hidden="true"></div>
+        <div class="dashboard-v2-user dashx-user">
+            <div class="dashboard-v2-user-avatar">
+                <button type="button" id="viewerAvatarTrigger" class="dashboard-avatar-trigger" aria-haspopup="true" aria-expanded="false" aria-controls="viewerAvatarMenu">
+                    <img src="/static/images/{{ viewer.profile_image }}" alt="{{ viewer.full_name }}">
+                </button>
+
+                <form id="viewerAvatarForm" method="post" enctype="multipart/form-data" action="/viewer/{{ viewer.id }}/profile-image" class="dashboard-avatar-upload-form">
+                    <input id="viewerImageInput" class="hidden-input" type="file" name="profile_image" accept="image/*" required onchange="this.form.submit()">
+                </form>
+
+                <div id="viewerAvatarMenu" class="dashboard-avatar-menu" role="menu" aria-hidden="true">
+                    {% if viewer.profile_image and viewer.profile_image != 'default-profile.svg' %}
+                    <button type="button" class="dashboard-avatar-menu-item js-open-profile-photo" data-photo-src="/static/images/{{ viewer.profile_image }}">View Profile Photo</button>
+                    <button type="button" class="dashboard-avatar-menu-item" id="changeViewerPhotoBtn">Change Profile Photo</button>
+                    {% else %}
+                    <button type="button" class="dashboard-avatar-menu-item" id="changeViewerPhotoBtn">Add Profile Photo</button>
+                    {% endif %}
+                </div>
+            </div>
+            <div>
+                <h2>{{ viewer.full_name }}</h2>
+                <p>@{{ viewer.username or 'viewer' }}</p>
+            </div>
+        </div>
+
+        <nav class="dashboard-v2-nav dashx-nav">
+            <a href="/viewer/{{ viewer.id }}" class="active">
+                <span class="dashx-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/></svg></span>
+                Overview
+            </a>
+            <a href="/">
+                <span class="dashx-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+                Discover Designers
+            </a>
+            <a href="#saved-projects">
+                <span class="dashx-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"/></svg></span>
+                Saved Projects
+            </a>
+            <a href="#wishlist-projects">
+                <span class="dashx-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="m12 3 2.6 5.3 5.8.9-4.2 4.1 1 5.8L12 16.3l-5.2 2.8 1-5.8L3.6 9.2l5.8-.9L12 3Z"/></svg></span>
+                Wishlist
+            </a>
+            <a href="#followed-designers">
+                <span class="dashx-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M16 19a4 4 0 0 0-8 0"/><circle cx="12" cy="11" r="3.5"/><path d="M19.5 19a3.5 3.5 0 0 0-3-3.45"/></svg></span>
+                Following
+            </a>
+        </nav>
+
+        <div class="dashboard-v2-note dashx-note">
+            <h4>Collection Tip</h4>
+            <p>Save top references into wishlist and follow active designers to get better suggestions.</p>
+        </div>
+    </aside>
+
+    <section class="dashboard-v2-main dashx-main">
+        <article class="dashboard-v2-hero premium-card dashx-hero">
+            <div>
+                <p class="eyebrow">Viewer Workspace</p>
+                <h1>Curated inspiration command center</h1>
+                <p class="muted">Track your favorite works, organized wishlist, and followed creators with a cleaner premium layout.</p>
+            </div>
+            <a href="/" class="chip solid">Explore New Work</a>
+        </article>
+
+        <section class="dashboard-v2-stats dashboard-v2-stats-3 dashx-stats">
+            <article class="dashboard-v2-stat premium-card dashx-stat-card">
+                <span>Saved Projects</span>
+                <strong>{{ liked|length }}</strong>
+                <small>Liked collection</small>
+            </article>
+            <article class="dashboard-v2-stat premium-card dashx-stat-card">
+                <span>Followed Designers</span>
+                <strong>{{ followed|length }}</strong>
+                <small>Creator network</small>
+            </article>
+            <article class="dashboard-v2-stat premium-card dashx-stat-card">
+                <span>Wishlist Items</span>
+                <strong>{{ wishlist|length }}</strong>
+                <small>Future picks</small>
+            </article>
+        </section>
+
+        <div class="dashboard-v2-duo dashboard-v2-trio dashx-lists-grid">
+            <article id="saved-projects" class="premium-card dashboard-v2-section dashx-list-card">
+                <div class="section-head">
+                    <h3>Saved Projects</h3>
+                </div>
+                <ul class="dashboard-v2-list dashboard-v2-linked-list">
+                    {% for item in liked %}
+                    <li>
+                        <a href="/designer/{{ item.designer_id }}#project-{{ item.id }}">{{ item.title }}</a>
+                        <small><a href="/designer/{{ item.designer_id }}">Designer Profile</a></small>
+                    </li>
+                    {% else %}
+                    <li>No saved projects yet.</li>
+                    {% endfor %}
+                </ul>
+            </article>
+
+            <article id="wishlist-projects" class="premium-card dashboard-v2-section dashx-list-card">
+                <div class="section-head">
+                    <h3>Wishlist</h3>
+                </div>
+                <ul class="dashboard-v2-list dashboard-v2-linked-list">
+                    {% for item in wishlist %}
+                    <li>
+                        <a href="/designer/{{ item.designer_id }}#project-{{ item.id }}">{{ item.title }}</a>
+                        <small><a href="/designer/{{ item.designer_id }}">Designer Profile</a></small>
+                    </li>
+                    {% else %}
+                    <li>No wishlist items yet.</li>
+                    {% endfor %}
+                </ul>
+            </article>
+
+            <article id="followed-designers" class="premium-card dashboard-v2-section dashx-list-card">
+                <div class="section-head">
+                    <h3>Followed Designers</h3>
+                </div>
+                <ul class="dashboard-v2-list dashboard-v2-linked-list">
+                    {% for item in followed %}
+                    <li>
+                        <a href="/designer/{{ item.id }}">{{ item.full_name }}</a>
+                        <small>{{ item.skills or 'Designer' }}</small>
+                    </li>
+                    {% else %}
+                    <li>No followed designers yet.</li>
+                    {% endfor %}
+                </ul>
+            </article>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <p>&copy; Jaber Muhammad. All rights reserved.</p>
+</footer>
+
+<div id="profilePhotoViewer" class="image-viewer profile-photo-viewer">
+  <span id="profilePhotoClose" class="viewer-close">&times;</span>
+  <img id="profilePhotoImage" class="profile-photo-img" src="" alt="Profile photo preview" />
+</div>
+
+<script>
+(function () {
+    const trigger = document.getElementById('viewerAvatarTrigger');
+    const menu = document.getElementById('viewerAvatarMenu');
+    const changeBtn = document.getElementById('changeViewerPhotoBtn');
+    const input = document.getElementById('viewerImageInput');
+    const openPhotoBtn = document.querySelector('.js-open-profile-photo');
+    const photoViewer = document.getElementById('profilePhotoViewer');
+    const photoImage = document.getElementById('profilePhotoImage');
+    const photoClose = document.getElementById('profilePhotoClose');
+
+    if (!trigger || !menu || !changeBtn || !input) {
+        return;
+    }
+
+    function closeMenu() {
+        menu.classList.remove('show');
+        trigger.setAttribute('aria-expanded', 'false');
+        menu.setAttribute('aria-hidden', 'true');
+    }
+
+    function openMenu() {
+        menu.classList.add('show');
+        trigger.setAttribute('aria-expanded', 'true');
+        menu.setAttribute('aria-hidden', 'false');
+    }
+
+    function closePhotoViewer() {
+        if (!photoViewer || !photoImage) return;
+        photoViewer.classList.remove('active');
+        photoImage.src = '';
+        document.body.classList.remove('no-scroll');
+    }
+
+    function openPhotoViewer(src) {
+        if (!photoViewer || !photoImage) return;
+        photoImage.src = src;
+        photoViewer.classList.add('active');
+        document.body.classList.add('no-scroll');
+    }
+
+    trigger.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (menu.classList.contains('show')) {
+            closeMenu();
+        } else {
+            openMenu();
+        }
+    });
+
+    changeBtn.addEventListener('click', function () {
+        closeMenu();
+        input.click();
+    });
+
+    if (openPhotoBtn) {
+        openPhotoBtn.addEventListener('click', function () {
+            closeMenu();
+            openPhotoViewer(openPhotoBtn.dataset.photoSrc || '');
+        });
+    }
+
+    if (photoClose) {
+        photoClose.addEventListener('click', closePhotoViewer);
+    }
+
+    if (photoImage) {
+        photoImage.addEventListener('click', closePhotoViewer);
+    }
+
+    if (photoViewer) {
+        photoViewer.addEventListener('click', function (e) {
+            if (e.target === photoViewer) {
+                closePhotoViewer();
+            }
+        });
+    }
+
+    document.addEventListener('click', function (e) {
+        if (!menu.contains(e.target) && !trigger.contains(e.target)) {
+            closeMenu();
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeMenu();
+            closePhotoViewer();
+        }
+    });
+})();
+</script>
+<script src='/static/js/app.js'></script>
+</body>
+</html>
+
+
+
+

@@ -1,0 +1,41 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Viewers{% endblock %}
+{% block page_title %}Viewers{% endblock %}
+
+{% block content %}
+<section class="glass-card table-wrap">
+    <form class="search-row" method="get" action="/admin/viewers">
+        <input type="text" name="q" value="{{ q }}" placeholder="Search by name, username, email">
+        <button type="submit">Search</button>
+    </form>
+
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>ID</th><th>Name</th><th>Username</th><th>Email</th><th>Following</th><th>Liked</th><th>Wishlist</th><th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for v in viewers %}
+        <tr>
+            <td>{{ v.id }}</td>
+            <td>{{ v.full_name }}</td>
+            <td>{{ v.username or '-' }}</td>
+            <td>{{ v.email }}</td>
+            <td>{{ v.following_designers|length }}</td>
+            <td>{{ v.liked_projects|length }}</td>
+            <td>{{ v.wishlist_projects|length }}</td>
+            <td class="action-cell">
+                <a class="btn-secondary" href="/viewer/{{ v.id }}" target="_blank">Dashboard</a>
+                <form method="post" action="/admin/viewers/{{ v.id }}/delete" data-confirm="Delete viewer '{{ v.full_name }}'?" class="inline-form">
+                    <button type="submit" class="btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="empty-cell">No viewers found</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

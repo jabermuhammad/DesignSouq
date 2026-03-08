@@ -1,0 +1,160 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<section class="metric-grid metric-grid-extended">
+    <article class="metric-card glass-card metric-variant-1">
+        <div class="metric-head">
+            <div class="metric-icon">DS</div>
+            <span>Designers</span>
+        </div>
+        <strong>{{ stats.total_designers }}</strong>
+        <small class="trend">+{{ recent_designers|length }} this week</small>
+    </article>
+    <article class="metric-card glass-card metric-variant-2">
+        <div class="metric-head">
+            <div class="metric-icon">VW</div>
+            <span>Viewers</span>
+        </div>
+        <strong>{{ stats.total_viewers }}</strong>
+        <small class="trend">+{{ recent_viewers|length }} this week</small>
+    </article>
+    <article class="metric-card glass-card metric-variant-3">
+        <div class="metric-head">
+            <div class="metric-icon">PJ</div>
+            <span>Projects</span>
+        </div>
+        <strong>{{ stats.total_projects }}</strong>
+        <small class="trend">+{{ recent_projects|length }} today</small>
+    </article>
+    <article class="metric-card glass-card metric-variant-4">
+        <div class="metric-head">
+            <div class="metric-icon">FP</div>
+            <span>Featured Projects</span>
+        </div>
+        <strong>{{ stats.featured_projects }}</strong>
+        <small class="trend">Curated picks</small>
+    </article>
+    <article class="metric-card glass-card metric-variant-5">
+        <div class="metric-head">
+            <div class="metric-icon">LK</div>
+            <span>Total Likes</span>
+        </div>
+        <strong>{{ stats.total_likes }}</strong>
+        <small class="trend">+{{ stats.total_followers }} follows</small>
+    </article>
+    <article class="metric-card glass-card metric-variant-6">
+        <div class="metric-head">
+            <div class="metric-icon">RP</div>
+            <span>Open Reports</span>
+        </div>
+        <strong>{{ stats.open_reports }}</strong>
+        <small class="trend">{{ stats.banned_designers }} banned designers</small>
+    </article>
+</section>
+
+<section class="glass-card chart-panel quick-chart-panel">
+    <div class="panel-head">
+        <h3>Quick Analytics</h3>
+        <small>Visitors, uploads and reports</small>
+    </div>
+    <canvas id="adminDashboardPreviewChart" height="100"></canvas>
+</section>
+
+<section class="glass-card activity-panel">
+    <div class="panel-head">
+        <h3>Recent Activity</h3>
+        <small>Latest moderation and growth events</small>
+    </div>
+    <ul class="activity-list">
+        {% for item in recent_designers[:3] %}
+        <li>
+            <span class="activity-dot activity-designer"></span>
+            <div>
+                <strong>New designer registered</strong>
+                <small>{{ item.full_name }} ({{ item.email }})</small>
+            </div>
+        </li>
+        {% endfor %}
+        {% for item in recent_projects[:3] %}
+        <li>
+            <span class="activity-dot activity-project"></span>
+            <div>
+                <strong>Project uploaded</strong>
+                <small>{{ item.title }} by {{ item.designer.full_name }}</small>
+            </div>
+        </li>
+        {% endfor %}
+        {% for item in recent_reports[:3] %}
+        <li>
+            <span class="activity-dot activity-report"></span>
+            <div>
+                <strong>Report submitted</strong>
+                <small>#{{ item.id }} {{ item.target_type|title }} - {{ item.reason }}</small>
+            </div>
+        </li>
+        {% endfor %}
+        {% if stats.banned_designers > 0 %}
+        <li>
+            <span class="activity-dot activity-ban"></span>
+            <div>
+                <strong>Designer banned</strong>
+                <small>{{ stats.banned_designers }} currently banned</small>
+            </div>
+        </li>
+        {% endif %}
+        {% if recent_designers|length == 0 and recent_projects|length == 0 and recent_reports|length == 0 and stats.banned_designers == 0 %}
+        <li>
+            <span class="activity-dot"></span>
+            <div>
+                <strong>No recent activity</strong>
+                <small>New actions will appear here.</small>
+            </div>
+        </li>
+        {% endif %}
+    </ul>
+</section>
+
+<section class="table-triple table-quad dashboard-lists">
+    <article class="glass-card">
+        <h3>Recent Designers</h3>
+        <ul class="mini-list">
+            {% for item in recent_designers %}
+            <li><span>{{ item.full_name }}</span><small>{{ item.email }}</small></li>
+            {% else %}
+            <li><span>No designers yet</span></li>
+            {% endfor %}
+        </ul>
+    </article>
+
+    <article class="glass-card">
+        <h3>Recent Projects</h3>
+        <ul class="mini-list">
+            {% for item in recent_projects %}
+            <li><span>{{ item.title }}</span><small>{{ item.designer.full_name }}</small></li>
+            {% else %}
+            <li><span>No projects yet</span></li>
+            {% endfor %}
+        </ul>
+    </article>
+
+    <article class="glass-card">
+        <h3>Recent Reports</h3>
+        <ul class="mini-list">
+            {% for item in recent_reports %}
+            <li>
+                <span>#{{ item.id }} {{ item.target_type|title }}</span>
+                <small>{{ item.reason }} ({{ item.status }})</small>
+            </li>
+            {% else %}
+            <li><span>No reports yet</span></li>
+            {% endfor %}
+        </ul>
+    </article>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="dashboardChartData" type="application/json">{}
+</script>
+{% endblock %}

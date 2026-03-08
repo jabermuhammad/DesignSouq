@@ -1,0 +1,23 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Users{% endblock %}
+{% block page_title %}User Management{% endblock %}
+
+{% block content %}
+<section class="user-summary-grid user-summary-grid-3">
+    <article class="glass-card summary-card">
+        <h3>Designers</h3>
+        <p>{{ designer_count }}</p>
+        <a href="/admin/designers">Manage Designers</a>
+    </article>
+    <article class="glass-card summary-card">
+        <h3>Viewers</h3>
+        <p>{{ viewer_count }}</p>
+        <a href="/admin/viewers">Manage Viewers</a>
+    </article>
+    <article class="glass-card summary-card">
+        <h3>Banned Designers</h3>
+        <p>{{ banned_count }}</p>
+        <a href="/admin/designers">Review Ban List</a>
+    </article>
+</section>
+{% endblock %}

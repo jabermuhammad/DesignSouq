@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Project</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a href="/" class="chip solid">Design Haat</a>
+    <div class="top-actions">
+        {% if auth and auth.is_logged_in %}
+            <a href="{{ auth.profile_url }}" class="profile-chip" title="{{ auth.name }}"><img src="{{ auth.avatar_url }}" alt="{{ auth.name }}"></a>
+            <a href="/logout" class="chip">Logout</a>
+        {% endif %}
+        <a href="/designer/{{ designer.id }}" class="chip">Back to Profile</a>
+    </div>
+</header>
+
+<main class="container">
+    <section class="panel upload-panel">
+        <h2>{% if project %}Edit Project{% else %}Upload New Project{% endif %}</h2>
+        <form method="post" enctype="multipart/form-data" action="{% if project %}/designer/{{ designer.id }}/project/{{ project.id }}/edit{% else %}/designer/{{ designer.id }}/upload{% endif %}" class="stack-form">
+            <input name="title" value="{{ project.title if project else '' }}" placeholder="Project title" required>
+            <textarea name="description" placeholder="Description" required>{{ project.description if project else '' }}</textarea>
+            <input name="category" value="{{ project.category if project else '' }}" placeholder="Category" required>
+            <input name="tags" value="{{ project.tags if project else '' }}" placeholder="Tags (comma separated)" required>
+            <input type="file" name="image" accept="image/*" {% if not project %}required{% endif %}>
+            <button type="submit">{% if project %}Update{% else %}Upload{% endif %}</button>
+        </form>
+    </section>
+</main>
+<footer class="site-footer">
+    <p>&copy; Jaber Muhammad. All rights reserved.</p>
+</footer>
+<script src='/static/js/app.js'></script>
+</body>
+</html>
+
+
+
+
+

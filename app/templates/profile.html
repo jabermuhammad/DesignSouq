@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Designer Profile</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a href="/" class="chip solid">Design Haat</a>
+    <div class="top-actions">
+        {% if auth and auth.is_logged_in %}
+            <a href="{{ auth.profile_url }}" class="profile-chip" title="{{ auth.name }}"><img src="{{ auth.avatar_url }}" alt="{{ auth.name }}"></a>
+            <a href="/logout" class="chip">Logout</a>
+        {% endif %}
+        {% if is_owner %}
+            <a href="/designer/{{ designer.id }}/upload" class="chip solid">New Project Upload</a>
+        {% endif %}
+    </div>
+</header>
+
+<section class="designer-cover designer-cover-profile" style="background-image:linear-gradient(120deg, rgba(8, 24, 39, 0.82), rgba(12, 42, 66, 0.52)), url('/static/images/{{ designer.cover_image }}');">
+    {% if is_owner %}
+    <form method="post" enctype="multipart/form-data" action="/designer/{{ designer.id }}/cover" class="cover-camera-form cover-upload-premium">
+        <input id="coverImageInput" class="hidden-input" type="file" name="cover_image" accept="image/*" required onchange="this.form.submit()">
+        <label for="coverImageInput" class="cover-upload-btn" aria-label="Update cover photo" title="Update Cover Photo">
+            <span class="cover-upload-dot"></span>
+            <span class="cover-upload-text">Update Cover</span>
+        </label>
+    </form>
+    {% endif %}
+</section>
+
+<main class="container profile-restore-layout">
+    <aside class="profile-restore-sidebar">
+        <div class="profile-restore-avatar-wrap">
+            {% if is_owner %}
+            <button type="button" id="designerAvatarTrigger" class="profile-avatar-trigger" aria-haspopup="true" aria-expanded="false" aria-controls="designerAvatarMenu">
+                <img src="/static/images/{{ designer.profile_image }}" class="profile-restore-avatar" alt="{{ designer.full_name }}">
+            </button>
+
+            <form id="designerAvatarForm" method="post" enctype="multipart/form-data" action="/designer/{{ designer.id }}/profile-image" class="profile-avatar-upload-form">
+                <input id="profileImageInput" class="hidden-input" type="file" name="profile_image" accept="image/*" required onchange="this.form.submit()">
+            </form>
+
+            <div id="designerAvatarMenu" class="profile-avatar-menu" role="menu" aria-hidden="true">
+                {% if designer.profile_image and designer.profile_image != 'default-profile.svg' %}
+                <button type="button" class="profile-avatar-menu-item js-open-profile-photo" data-photo-src="/static/images/{{ designer.profile_image }}">View Profile Photo</button>
+                <button type="button" class="profile-avatar-menu-item" id="changeDesignerPhotoBtn">Change Profile Photo</button>
+                {% else %}
+                <button type="button" class="profile-avatar-menu-item" id="changeDesignerPhotoBtn">Add Profile Photo</button>
+                {% endif %}
+            </div>
+            {% else %}
+            <img src="/static/images/{{ designer.profile_image }}" class="profile-restore-avatar" alt="{{ designer.full_name }}">
+            {% endif %}
+        </div>
+        {% if auth and auth.viewer_id and not is_owner %}
+        <form method="post" action="/viewer/{{ auth.viewer_id }}/follow/{{ designer.id }}" class="designer-follow-form designer-follow-hero-form">
+            <button type="submit" class="designer-follow-btn designer-follow-hero-btn {% if is_following %}is-following{% endif %}">
+                {% if is_following %}Following{% else %}Follow Designer{% endif %}
+            </button>
+        </form>
+        {% endif %}
+
+        <h2 class="designer-name-line" title="{{ designer.full_name }}">{{ designer.full_name }}</h2>
+        <p class="role">Professional Graphic Designer</p>
+
+        <div class="designer-side-stats">
+            <div>
+                <strong>{{ followers_count }}</strong>
+                <span>Followers</span>
+            </div>
+            <div>
+                <strong>{{ projects|length }}</strong>
+                <span>Projects</span>
+            </div>
+        </div>
+
+        {% if auth and auth.viewer_id and not is_owner %}
+        <form method="post" action="/viewer/{{ auth.viewer_id }}/follow/{{ designer.id }}" class="designer-follow-form">
+            <button type="submit" class="designer-follow-btn {% if is_following %}is-following{% endif %}">
+                {% if is_following %}Following{% else %}Follow Designer{% endif %}
+            </button>
+        </form>
+        {% endif %}
+
+        <div class="designer-info-panel premium-card">
+            <h3>Profile Information</h3>
+
+            {% if designer.skills %}
+            <div class="designer-info-block">
+                <h4>Skills</h4>
+                <div class="designer-skill-chips">
+                    {% for skill in designer.skills.split(',') %}
+                        {% if skill.strip() %}
+                        <span>{{ skill.strip() }}</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="designer-info-block">
+                <h4>Contact Information</h4>
+                <ul class="designer-contact-list">
+                    {% if designer.whatsapp %}
+                    <li><a class="contact-link" href="https://wa.me/{{ designer.whatsapp|replace(' ', '') }}" target="_blank">WhatsApp: {{ designer.whatsapp }}</a></li>
+                    {% endif %}
+                    <li><a class="contact-link" href="mailto:{{ designer.email }}">Email: {{ designer.email }}</a></li>
+                    {% if designer.address %}
+                    <li>{{ designer.address }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            {% if designer.website_url or designer.facebook_url or designer.instagram_url or designer.behance_url or designer.dribbble_url %}
+            <div class="designer-info-block">
+                <h4>Links</h4>
+                <div class="designer-social-links">
+                    {% if designer.website_url %}<a href="{{ designer.website_url }}" target="_blank" rel="noopener">Website</a>{% endif %}
+                    {% if designer.facebook_url %}<a href="{{ designer.facebook_url }}" target="_blank" rel="noopener">Facebook</a>{% endif %}
+                    {% if designer.instagram_url %}<a href="{{ designer.instagram_url }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
+                    {% if designer.behance_url %}<a href="{{ designer.behance_url }}" target="_blank" rel="noopener">Behance</a>{% endif %}
+                    {% if designer.dribbble_url %}<a href="{{ designer.dribbble_url }}" target="_blank" rel="noopener">Dribbble</a>{% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="designer-info-block about-me-block" id="aboutMeBlock">
+                <h4>About Me</h4>
+                <p class="about-me-text is-collapsed" id="aboutMeText">{{ designer.bio or 'Designer has not added About Me yet.' }}</p>
+                <button type="button" class="about-me-toggle" id="aboutMeToggle" aria-expanded="false">See more</button>
+            </div>
+
+        </div>
+        {% if is_owner %}
+        <details class="designer-edit-panel premium-card" open>
+            <summary>Edit Public Details</summary>
+            <form method="post" action="/designer/{{ designer.id }}/profile-info" class="designer-edit-form">
+                <input name="whatsapp" value="{{ designer.whatsapp }}" placeholder="WhatsApp Number">
+                <input name="address" value="{{ designer.address }}" placeholder="Address">
+                <input name="skills" value="{{ designer.skills }}" placeholder="Skills (comma separated)">
+                <textarea name="bio" rows="4" placeholder="About Me">{{ designer.bio }}</textarea>
+                <input name="website_url" value="{{ designer.website_url }}" placeholder="Website URL">
+                <input name="facebook_url" value="{{ designer.facebook_url }}" placeholder="Facebook URL">
+                <input name="instagram_url" value="{{ designer.instagram_url }}" placeholder="Instagram URL">
+                <input name="behance_url" value="{{ designer.behance_url }}" placeholder="Behance URL">
+                <input name="dribbble_url" value="{{ designer.dribbble_url }}" placeholder="Dribbble URL">
+                <button type="submit" class="chip solid">Save Profile Details</button>
+            </form>
+        </details>
+        {% endif %}
+    </aside>
+
+    <section class="profile-restore-gallery">
+        <div class="profile-restore-grid">
+            {% for project in projects %}
+            <article id="project-{{ project.id }}" class="profile-restore-card">
+                {% if is_owner %}
+                <a href="/designer/{{ designer.id }}/project/{{ project.id }}/edit" class="profile-restore-edit">Edit</a>
+                {% endif %}
+                <img src="/static/images/{{ project.image_filename }}" alt="{{ project.title }}" class="thumb profile-restore-thumb">
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <p>&copy; Jaber Muhammad. All rights reserved.</p>
+</footer>
+
+<div id="profilePhotoViewer" class="image-viewer profile-photo-viewer">
+  <span id="profilePhotoClose" class="viewer-close">&times;</span>
+  <img id="profilePhotoImage" class="profile-photo-img" src="" alt="Profile photo preview" />
+</div>
+
+<script src="/static/js/app.js"></script>
+{% if is_owner %}
+<script>
+(function () {
+    const trigger = document.getElementById('designerAvatarTrigger');
+    const menu = document.getElementById('designerAvatarMenu');
+    const changeBtn = document.getElementById('changeDesignerPhotoBtn');
+    const input = document.getElementById('profileImageInput');
+    const openPhotoBtn = document.querySelector('.js-open-profile-photo');
+    const photoViewer = document.getElementById('profilePhotoViewer');
+    const photoImage = document.getElementById('profilePhotoImage');
+    const photoClose = document.getElementById('profilePhotoClose');
+
+    if (!trigger || !menu || !changeBtn || !input) {
+        return;
+    }
+
+    function closeMenu() {
+        menu.classList.remove('show');
+        trigger.setAttribute('aria-expanded', 'false');
+        menu.setAttribute('aria-hidden', 'true');
+    }
+
+    function openMenu() {
+        menu.classList.add('show');
+        trigger.setAttribute('aria-expanded', 'true');
+        menu.setAttribute('aria-hidden', 'false');
+    }
+
+    function closePhotoViewer() {
+        if (!photoViewer || !photoImage) return;
+        photoViewer.classList.remove('active');
+        photoImage.src = '';
+        document.body.classList.remove('no-scroll');
+    }
+
+    function openPhotoViewer(src) {
+        if (!photoViewer || !photoImage) return;
+        photoImage.src = src;
+        photoViewer.classList.add('active');
+        document.body.classList.add('no-scroll');
+    }
+
+    trigger.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (menu.classList.contains('show')) {
+            closeMenu();
+        } else {
+            openMenu();
+        }
+    });
+
+    changeBtn.addEventListener('click', function () {
+        closeMenu();
+        input.click();
+    });
+
+    if (openPhotoBtn) {
+        openPhotoBtn.addEventListener('click', function () {
+            closeMenu();
+            openPhotoViewer(openPhotoBtn.dataset.photoSrc || '');
+        });
+    }
+
+    if (photoClose) {
+        photoClose.addEventListener('click', closePhotoViewer);
+    }
+
+    if (photoImage) {
+        photoImage.addEventListener('click', closePhotoViewer);
+    }
+
+    if (photoViewer) {
+        photoViewer.addEventListener('click', function (e) {
+            if (e.target === photoViewer) {
+                closePhotoViewer();
+            }
+        });
+    }
+
+    document.addEventListener('click', function (e) {
+        if (!menu.contains(e.target) && !trigger.contains(e.target)) {
+            closeMenu();
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeMenu();
+            closePhotoViewer();
+        }
+    });
+})();
+</script>
+{% endif %}
+<script>
+(function () {
+    const aboutBlock = document.getElementById('aboutMeBlock');
+    const aboutText = document.getElementById('aboutMeText');
+    const toggleBtn = document.getElementById('aboutMeToggle');
+
+    if (!aboutBlock || !aboutText || !toggleBtn) {
+        return;
+    }
+
+    const collapsedClass = 'is-collapsed';
+    const rawText = (aboutText.textContent || '').trim();
+    const needsToggle = rawText.length > 180 || rawText.includes('\n');
+
+    function setButtonLabel() {
+        const expanded = !aboutText.classList.contains(collapsedClass);
+        toggleBtn.textContent = expanded ? 'See less' : 'See more';
+        toggleBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+
+    aboutBlock.style.display = 'block';
+
+    if (!needsToggle) {
+        toggleBtn.style.display = 'none';
+        aboutText.classList.remove(collapsedClass);
+        return;
+    }
+
+    aboutText.classList.add(collapsedClass);
+    toggleBtn.style.display = 'inline-block';
+
+    toggleBtn.addEventListener('click', function () {
+        aboutText.classList.toggle(collapsedClass);
+        setButtonLabel();
+    });
+
+    setButtonLabel();
+})();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+

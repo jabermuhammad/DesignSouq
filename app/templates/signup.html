@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up | Design Haat</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a href="/" class="logo">Design Haat</a>
+    <div class="top-actions">
+        <a href="/login" class="chip solid">Login</a>
+    </div>
+</header>
+
+<main class="container split auth-shell">
+    {% if error %}
+    <p class="auth-error">{{ error }}</p>
+    {% endif %}
+
+    <section class="panel premium-card">
+        <h2>Join as Designer</h2>
+        <form method="post" action="/signup/designer" class="stack-form" enctype="multipart/form-data">
+            <input name="full_name" placeholder="Full Name" required>
+            <input name="username" placeholder="Username" required>
+            <input type="email" name="email" placeholder="Email" required>
+            <input name="whatsapp" placeholder="WhatsApp Number (e.g. 8801XXXXXXXXX)">
+            <input type="password" name="password" placeholder="Password" required>
+            <input type="file" name="profile_logo" accept="image/*">
+            <input name="skills" placeholder="Design Skill / Category" required>
+            <textarea name="bio" placeholder="Short Bio (optional)" rows="4"></textarea>
+            <button type="submit">Create Designer Account</button>
+        </form>
+    </section>
+
+    <section class="panel premium-card">
+        <h2>Join as Viewer</h2>
+        <form method="post" action="/signup/viewer" class="stack-form">
+            <input name="full_name" placeholder="Full Name" required>
+            <input name="username" placeholder="Username" required>
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Create Viewer Account</button>
+        </form>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <p>&copy; Jaber Muhammad. All rights reserved.</p>
+</footer>
+<script src='/static/js/app.js'></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+

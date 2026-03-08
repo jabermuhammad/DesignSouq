@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Designer Dashboard | Design Haat</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a href="/" class="logo">Design Haat</a>
+    <div class="top-actions">
+        <a href="/designer/{{ designer.id }}" class="chip">Public Profile</a>
+        <a href="/designer/{{ designer.id }}/upload" class="chip solid">Upload Project</a>
+        <a href="/logout" class="chip">Logout</a>
+    </div>
+</header>
+
+<main class="container dashboard-v2 dashx-shell dashx-designer">
+    <aside class="dashboard-v2-sidebar premium-card dashx-sidebar">
+        <div class="dashx-sidebar-glow" aria-hidden="true"></div>
+        <div class="dashboard-v2-user dashx-user">
+            <img src="/static/images/{{ designer.profile_image }}" alt="{{ designer.full_name }}">
+            <div>
+                <h2>{{ designer.full_name }}</h2>
+                <p>@{{ designer.username or 'designer' }}</p>
+            </div>
+        </div>
+
+        <nav class="dashboard-v2-nav dashx-nav">
+            <a href="/designer/{{ designer.id }}/dashboard" class="active">
+                <span class="dashx-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/></svg></span>
+                Overview
+            </a>
+            <a href="/designer/{{ designer.id }}/upload">
+                <span class="dashx-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 5v14"/><path d="M5 12h14"/><rect x="3" y="3" width="18" height="18" rx="4"/></svg></span>
+                Upload Project
+            </a>
+            <a href="/designer/{{ designer.id }}">
+                <span class="dashx-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M16 19a4 4 0 0 0-8 0"/><circle cx="12" cy="11" r="3.5"/></svg></span>
+                Edit Profile
+            </a>
+            <a href="/designer/{{ designer.id }}">
+                <span class="dashx-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.8"/></svg></span>
+                Public Portfolio
+            </a>
+        </nav>
+
+        <div class="dashboard-v2-note dashx-note">
+            <h4>Growth Tip</h4>
+            <p>Keep project categories and tags consistent. It improves ranking and discoverability.</p>
+        </div>
+    </aside>
+
+    <section class="dashboard-v2-main dashx-main">
+        <article class="dashboard-v2-hero premium-card dashx-hero">
+            <div>
+                <p class="eyebrow">Designer Workspace</p>
+                <h1>Premium performance cockpit</h1>
+                <p class="muted">Portfolio updates, engagement trends, and project insights in one clean dashboard.</p>
+                <div class="dashx-hero-pills">
+                    <span>Active Projects: {{ analytics.project_count }}</span>
+                    <span>Audience Likes: {{ analytics.total_likes }}</span>
+                    <span>Collection Saves: {{ analytics.total_saves }}</span>
+                </div>
+            </div>
+            <a href="/designer/{{ designer.id }}/upload" class="chip solid">+ New Upload</a>
+        </article>
+
+        <section class="dashboard-v2-stats dashx-stats">
+            <article class="dashboard-v2-stat premium-card dashx-stat-card">
+                <span>Total Projects</span>
+                <strong>{{ analytics.project_count }}</strong>
+                <small>Portfolio size</small>
+                <div class="dashx-stat-line"><i style="width: 92%"></i></div>
+            </article>
+            <article class="dashboard-v2-stat premium-card dashx-stat-card">
+                <span>Total Likes</span>
+                <strong>{{ analytics.total_likes }}</strong>
+                <small>Audience response</small>
+                <div class="dashx-stat-line"><i style="width: 86%"></i></div>
+            </article>
+            <article class="dashboard-v2-stat premium-card dashx-stat-card">
+                <span>Total Saves</span>
+                <strong>{{ analytics.total_saves }}</strong>
+                <small>Wishlist intent</small>
+                <div class="dashx-stat-line"><i style="width: 78%"></i></div>
+            </article>
+            <article class="dashboard-v2-stat premium-card dashx-stat-card">
+                <span>Profile Views</span>
+                <strong>{{ analytics.total_views }}</strong>
+                <small>Reach index</small>
+                <div class="dashx-stat-line"><i style="width: 64%"></i></div>
+            </article>
+        </section>
+
+        <article class="premium-card dashx-analytics-panel">
+            <div class="section-head">
+                <h3>Analytics Overview</h3>
+                <span class="dashx-panel-sub">Likes, saves and engagement by project</span>
+            </div>
+            <div class="dashx-chart-wrap">
+                <canvas id="designerAnalyticsChart" height="120"></canvas>
+            </div>
+            <div class="dashx-mini-metrics">
+                <div><strong>{{ analytics.total_likes }}</strong><span>Total likes</span></div>
+                <div><strong>{{ analytics.total_saves }}</strong><span>Total saves</span></div>
+                <div><strong>{{ analytics.project_count }}</strong><span>Total projects</span></div>
+            </div>
+        </article>
+
+        <article class="premium-card dashboard-v2-section dashx-projects-panel">
+            <div class="section-head">
+                <h3>Uploaded Designs</h3>
+                <a href="/designer/{{ designer.id }}/upload" class="chip">Add More</a>
+            </div>
+            <div class="dashboard-v2-projects dashx-projects-grid">
+                {% for project in projects %}
+                <a href="/designer/{{ designer.id }}/project/{{ project.id }}/edit" class="dashboard-v2-project-card dashx-project-card"
+                   data-title="{{ project.title }}"
+                   data-likes="{{ project.liked_by|length }}"
+                   data-saves="{{ project.wishlisted_by|length }}">
+                    <img src="/static/images/{{ project.image_filename }}" alt="{{ project.title }}">
+                    <div class="dashboard-v2-project-meta">
+                        <h4>{{ project.title }}</h4>
+                        <p>{{ project.category }}</p>
+                    </div>
+                </a>
+                {% else %}
+                <div class="dashboard-v2-empty">
+                    <p>No projects uploaded yet. Start by uploading your first design.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </article>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <p>&copy; Jaber Muhammad. All rights reserved.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function () {
+    const chartEl = document.getElementById('designerAnalyticsChart');
+    if (!chartEl || !window.Chart) return;
+
+    const cards = Array.from(document.querySelectorAll('.dashx-project-card'));
+    const labels = cards.map((el) => (el.dataset.title || 'Project').slice(0, 16));
+    const likes = cards.map((el) => Number(el.dataset.likes || 0));
+    const saves = cards.map((el) => Number(el.dataset.saves || 0));
+
+    const fallbackLabels = ['P1', 'P2', 'P3', 'P4', 'P5'];
+    const finalLabels = labels.length ? labels : fallbackLabels;
+    const finalLikes = likes.length ? likes : [2, 3, 1, 4, 5];
+    const finalSaves = saves.length ? saves : [1, 2, 1, 3, 2];
+    const engagement = finalLikes.map((like, i) => (like * 2) + (finalSaves[i] * 3));
+
+    const ctx = chartEl.getContext('2d');
+    const barGradient = ctx.createLinearGradient(0, 0, 0, 260);
+    barGradient.addColorStop(0, 'rgba(57, 132, 255, 0.92)');
+    barGradient.addColorStop(1, 'rgba(57, 132, 255, 0.28)');
+
+    const lineGradient = ctx.createLinearGradient(0, 0, 0, 260);
+    lineGradient.addColorStop(0, 'rgba(146, 108, 255, 0.72)');
+    lineGradient.addColorStop(1, 'rgba(146, 108, 255, 0.08)');
+
+    new window.Chart(chartEl, {
+        data: {
+            labels: finalLabels,
+            datasets: [
+                {
+                    label: 'Likes',
+                    data: finalLikes,
+                    type: 'bar',
+                    borderRadius: 8,
+                    backgroundColor: barGradient,
+                },
+                {
+                    label: 'Saves',
+                    data: finalSaves,
+                    type: 'bar',
+                    borderRadius: 8,
+                    backgroundColor: 'rgba(96, 219, 194, 0.74)',
+                },
+                {
+                    label: 'Engagement Score',
+                    data: engagement,
+                    type: 'line',
+                    tension: 0.36,
+                    borderWidth: 2,
+                    borderColor: 'rgba(168, 134, 255, 0.95)',
+                    pointBackgroundColor: '#c5abff',
+                    fill: true,
+                    backgroundColor: lineGradient,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: '#dde8ff' } }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#bed0ef' },
+                    grid: { color: 'rgba(144, 170, 210, 0.14)' }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { color: '#bed0ef', precision: 0 },
+                    grid: { color: 'rgba(144, 170, 210, 0.14)' }
+                }
+            }
+        }
+    });
+})();
+</script>
+<script src='/static/js/app.js'></script>
+</body>
+</html>
+
+
+
+

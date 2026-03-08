@@ -1,0 +1,278 @@
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.models import Designer, Project, Viewer
+from app.session_utils import build_auth_context
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+IMAGE_DIR = BASE_DIR / "static" / "images"
+IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+router = APIRouter(prefix="/designer")
+
+ALLOWED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".svg"}
+
+
+def save_image(upload: UploadFile) -> str:
+    suffix = Path(upload.filename or "").suffix.lower() or ".jpg"
+    content_type = (upload.content_type or "").lower()
+
+    if suffix not in ALLOWED_IMAGE_SUFFIXES:
+        raise HTTPException(status_code=400, detail="Unsupported image format")
+
+    if content_type and not content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Invalid file type")
+
+    filename = f"img_{uuid4().hex[:12]}{suffix}"
+    target = IMAGE_DIR / filename
+    with target.open("wb") as out:
+        out.write(upload.file.read())
+    return filename
+
+
+def ensure_designer_owner(request: Request, designer_id: int) -> None:
+    user_type = request.session.get("user_type")
+    user_id = request.session.get("user_id")
+    if user_type != "designer" or user_id != designer_id:
+        raise HTTPException(status_code=403, detail="Only this designer can modify this profile")
+
+
+def _normalize_url(url: str) -> str:
+    clean = (url or "").strip()
+    if not clean:
+        return ""
+    lower = clean.lower()
+    if lower.startswith("http://") or lower.startswith("https://"):
+        return clean
+    return f"https://{clean}"
+
+
+@router.get("/{designer_id}/dashboard")
+def dashboard(request: Request, designer_id: int, db: Session = Depends(get_db)):
+    ensure_designer_owner(request, designer_id)
+    designer = db.query(Designer).filter(Designer.id == designer_id).first()
+    if not designer:
+        raise HTTPException(status_code=404, detail="Designer not found")
+
+    projects = (
+        db.query(Project)
+        .filter(Project.designer_id == designer_id)
+        .order_by(Project.created_at.desc())
+        .all()
+    )
+
+    total_likes = sum(len(item.liked_by) for item in projects)
+    total_saves = sum(len(item.wishlisted_by) for item in projects)
+    analytics = {
+        "project_count": len(projects),
+        "total_likes": total_likes,
+        "total_saves": total_saves,
+        "total_views": 0,
+    }
+
+    auth = build_auth_context(request, db)
+    return templates.TemplateResponse(
+        "designer_dashboard.html",
+        {"request": request, "designer": designer, "projects": projects[:12], "analytics": analytics, "auth": auth},
+    )
+
+
+@router.get("/{designer_id}")
+def profile(request: Request, designer_id: int, db: Session = Depends(get_db)):
+    designer = db.query(Designer).filter(Designer.id == designer_id).first()
+    if not designer:
+        raise HTTPException(status_code=404, detail="Designer not found")
+
+    projects = (
+        db.query(Project)
+        .filter(Project.designer_id == designer_id)
+        .order_by(Project.created_at.desc())
+        .limit(12)
+        .all()
+    )
+
+    auth = build_auth_context(request, db)
+    viewer_id = auth.get("viewer_id")
+    is_following = False
+    if viewer_id:
+        viewer = db.query(Viewer).filter(Viewer.id == viewer_id).first()
+        if viewer:
+            is_following = any(item.id == designer_id for item in viewer.following_designers)
+
+    followers_count = len(designer.followers)
+
+    return templates.TemplateResponse(
+        "profile.html",
+        {
+            "request": request,
+            "designer": designer,
+            "projects": projects,
+            "auth": auth,
+            "is_owner": auth.get("user_type") == "designer" and auth.get("user_id") == designer_id,
+            "is_following": is_following,
+            "followers_count": followers_count,
+        },
+    )
+
+
+@router.post("/{designer_id}/profile-info")
+def update_profile_info(
+    request: Request,
+    designer_id: int,
+    whatsapp: str = Form(default=""),
+    address: str = Form(default=""),
+    skills: str = Form(default=""),
+    bio: str = Form(default=""),
+    website_url: str = Form(default=""),
+    facebook_url: str = Form(default=""),
+    instagram_url: str = Form(default=""),
+    behance_url: str = Form(default=""),
+    dribbble_url: str = Form(default=""),
+    db: Session = Depends(get_db),
+):
+    ensure_designer_owner(request, designer_id)
+    designer = db.query(Designer).filter(Designer.id == designer_id).first()
+    if not designer:
+        raise HTTPException(status_code=404, detail="Designer not found")
+
+    designer.whatsapp = whatsapp.strip()
+    designer.address = address.strip()
+    designer.skills = skills.strip()
+    designer.bio = bio.strip()
+    designer.website_url = _normalize_url(website_url)
+    designer.facebook_url = _normalize_url(facebook_url)
+    designer.instagram_url = _normalize_url(instagram_url)
+    designer.behance_url = _normalize_url(behance_url)
+    designer.dribbble_url = _normalize_url(dribbble_url)
+    db.commit()
+
+    return RedirectResponse(url=f"/designer/{designer_id}", status_code=303)
+
+
+@router.post("/{designer_id}/cover")
+def upload_cover(
+    request: Request,
+    designer_id: int,
+    cover_image: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    ensure_designer_owner(request, designer_id)
+    designer = db.query(Designer).filter(Designer.id == designer_id).first()
+    if not designer:
+        raise HTTPException(status_code=404, detail="Designer not found")
+
+    designer.cover_image = save_image(cover_image)
+    db.commit()
+    return RedirectResponse(url=f"/designer/{designer_id}", status_code=303)
+
+
+@router.post("/{designer_id}/profile-image")
+def upload_profile_image(
+    request: Request,
+    designer_id: int,
+    profile_image: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    ensure_designer_owner(request, designer_id)
+    designer = db.query(Designer).filter(Designer.id == designer_id).first()
+    if not designer:
+        raise HTTPException(status_code=404, detail="Designer not found")
+
+    designer.profile_image = save_image(profile_image)
+    db.commit()
+    return RedirectResponse(url=f"/designer/{designer_id}", status_code=303)
+
+
+@router.get("/{designer_id}/upload")
+def upload_page(request: Request, designer_id: int, db: Session = Depends(get_db)):
+    designer = db.query(Designer).filter(Designer.id == designer_id).first()
+    if not designer:
+        raise HTTPException(status_code=404, detail="Designer not found")
+
+    auth = build_auth_context(request, db)
+    return templates.TemplateResponse(
+        "upload_project.html",
+        {"request": request, "designer": designer, "project": None, "auth": auth},
+    )
+
+
+@router.post("/{designer_id}/upload")
+def upload_project(
+    request: Request,
+    designer_id: int,
+    title: str = Form(...),
+    description: str = Form(...),
+    category: str = Form(...),
+    tags: str = Form(...),
+    image: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    ensure_designer_owner(request, designer_id)
+    designer = db.query(Designer).filter(Designer.id == designer_id).first()
+    if not designer:
+        raise HTTPException(status_code=404, detail="Designer not found")
+
+    filename = save_image(image)
+    project = Project(
+        designer_id=designer_id,
+        title=title.strip(),
+        description=description.strip(),
+        category=category.strip(),
+        tags=tags.strip(),
+        image_filename=filename,
+    )
+    db.add(project)
+    db.commit()
+    return RedirectResponse(url=f"/designer/{designer_id}/dashboard", status_code=303)
+
+
+@router.get("/{designer_id}/project/{project_id}/edit")
+def edit_page(request: Request, designer_id: int, project_id: int, db: Session = Depends(get_db)):
+    designer = db.query(Designer).filter(Designer.id == designer_id).first()
+    project = db.query(Project).filter(Project.id == project_id, Project.designer_id == designer_id).first()
+    if not designer or not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    auth = build_auth_context(request, db)
+    return templates.TemplateResponse(
+        "upload_project.html",
+        {"request": request, "designer": designer, "project": project, "auth": auth},
+    )
+
+
+@router.post("/{designer_id}/project/{project_id}/edit")
+def edit_project(
+    request: Request,
+    designer_id: int,
+    project_id: int,
+    title: str = Form(...),
+    description: str = Form(...),
+    category: str = Form(...),
+    tags: str = Form(...),
+    image: UploadFile | None = File(default=None),
+    db: Session = Depends(get_db),
+):
+    ensure_designer_owner(request, designer_id)
+    project = db.query(Project).filter(Project.id == project_id, Project.designer_id == designer_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    project.title = title.strip()
+    project.description = description.strip()
+    project.category = category.strip()
+    project.tags = tags.strip()
+
+    if image and image.filename:
+        project.image_filename = save_image(image)
+
+    db.commit()
+    return RedirectResponse(url=f"/designer/{designer_id}/dashboard", status_code=303)
+
+
