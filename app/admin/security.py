@@ -48,8 +48,8 @@ def verify_admin_credentials(username: str, password: str) -> bool:
     stored_hash = os.getenv("ADMIN_PASSWORD_HASH", "")
     fallback_password = os.getenv("ADMIN_PASSWORD", "").strip()
 
-    if stored_hash:
-        return verify_password(submitted_password, stored_hash)
+    if stored_hash and verify_password(submitted_password, stored_hash):
+        return True
 
     if fallback_password:
         return hmac.compare_digest(submitted_password, fallback_password)
