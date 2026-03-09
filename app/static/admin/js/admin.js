@@ -145,6 +145,11 @@
     document.querySelectorAll(".settings-v2-copy").forEach(function (btn) {
         btn.addEventListener("click", function () {
             var text = btn.getAttribute("data-copy-value") || "";
+            var targetId = btn.getAttribute("data-copy-target") || "";
+            if (!text && targetId) {
+                var source = document.getElementById(targetId);
+                if (source) text = (source.textContent || "").trim();
+            }
             if (!text) return;
 
             var write = function () {
@@ -166,4 +171,5 @@
         });
     });
 })();
+
 

@@ -1,11 +1,13 @@
+import hmac
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from app.auth import hash_password, is_password_hashed, verify_password
 from app.database import get_db
 from app.models import Designer, Project, Viewer
 from app.session_utils import build_auth_context
@@ -37,6 +39,19 @@ def save_image(upload: UploadFile) -> str:
     return filename
 
 
+
+def _password_matches(plain_password: str, stored_password: str) -> bool:
+    if not stored_password:
+        return False
+    if stored_password == plain_password:
+        return True
+    return verify_password(plain_password, stored_password)
+
+
+def _upgrade_password_if_plain(db: Session, viewer: Viewer, plain_password: str) -> None:
+    if not is_password_hashed(viewer.password or ""):
+        viewer.password = hash_password(plain_password)
+        db.commit()
 def ensure_viewer_owner(request: Request, viewer_id: int) -> None:
     user_type = request.session.get("user_type")
     user_id = request.session.get("user_id")
@@ -65,6 +80,42 @@ def dashboard(request: Request, viewer_id: int, db: Session = Depends(get_db)):
     )
 
 
+
+@router.post("/{viewer_id}/change-password")
+def change_password(
+    request: Request,
+    viewer_id: int,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    ensure_viewer_owner(request, viewer_id)
+    viewer = db.query(Viewer).filter(Viewer.id == viewer_id).first()
+    if not viewer:
+        raise HTTPException(status_code=404, detail="Viewer not found")
+
+    cur = (current_password or "").strip()
+    new = (new_password or "").strip()
+    confirm = (confirm_password or "").strip()
+
+    if not _password_matches(cur, viewer.password or ""):
+        return RedirectResponse(url=f"/viewer/{viewer_id}?pwd_error=Current+password+is+incorrect", status_code=303)
+
+    _upgrade_password_if_plain(db, viewer, cur)
+
+    if len(new) < 8:
+        return RedirectResponse(url=f"/viewer/{viewer_id}?pwd_error=New+password+must+be+at+least+8+characters", status_code=303)
+
+    if new != confirm:
+        return RedirectResponse(url=f"/viewer/{viewer_id}?pwd_error=Password+confirmation+does+not+match", status_code=303)
+
+    if hmac.compare_digest(new, cur):
+        return RedirectResponse(url=f"/viewer/{viewer_id}?pwd_error=New+password+must+be+different", status_code=303)
+
+    viewer.password = hash_password(new)
+    db.commit()
+    return RedirectResponse(url=f"/viewer/{viewer_id}?pwd_ok=Password+updated+successfully", status_code=303)
 @router.post("/{viewer_id}/profile-image")
 def upload_profile_image(
     request: Request,
@@ -131,5 +182,8 @@ def wishlist(request: Request, viewer_id: int, project_id: int, db: Session = De
 
     db.commit()
     return RedirectResponse(url="/", status_code=303)
+
+
+
 
 

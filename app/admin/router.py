@@ -10,12 +10,14 @@ from app.admin.reports import router as reports_router
 from app.admin.security import (
     admin_template_context,
     clear_admin_session,
+    get_admin_username,
     is_admin_authenticated,
     mark_admin_session,
     verify_admin_credentials,
 )
 from app.admin.storage import ensure_admin_tables
 from app.admin.users import router as users_router
+from app.auth import hash_password
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -61,6 +63,47 @@ def admin_login(
         "admin/login.html",
         admin_template_context(request, login_error="Invalid admin credentials.", login_page=True),
         status_code=400,
+    )
+
+
+@router.post("/settings/password-helper")
+def admin_password_helper(
+    request: Request,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+):
+    if not is_admin_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
+
+    current = (current_password or "").strip()
+    new = (new_password or "").strip()
+    confirm = (confirm_password or "").strip()
+
+    error = None
+    generated_hash = ""
+    helper_message = None
+
+    if not verify_admin_credentials(get_admin_username(), current):
+        error = "Current admin password is incorrect."
+    elif len(new) < 8:
+        error = "New password must be at least 8 characters."
+    elif new != confirm:
+        error = "Password confirmation does not match."
+    else:
+        generated_hash = hash_password(new)
+        helper_message = "New hash generated. Set this as ADMIN_PASSWORD_HASH in Render env, then remove ADMIN_PASSWORD and disable bypass."
+
+    return templates.TemplateResponse(
+        "admin/settings.html",
+        admin_template_context(
+            request,
+            active_page="settings",
+            helper_error=error,
+            helper_message=helper_message,
+            generated_hash=generated_hash,
+        ),
+        status_code=400 if error else 200,
     )
 
 

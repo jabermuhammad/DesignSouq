@@ -1,3 +1,4 @@
+import hmac
 from pathlib import Path
 from uuid import uuid4
 
@@ -6,6 +7,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from app.auth import hash_password, is_password_hashed, verify_password
 from app.database import get_db
 from app.models import Designer, Project, Viewer
 from app.session_utils import build_auth_context
@@ -37,6 +39,19 @@ def save_image(upload: UploadFile) -> str:
     return filename
 
 
+
+def _password_matches(plain_password: str, stored_password: str) -> bool:
+    if not stored_password:
+        return False
+    if stored_password == plain_password:
+        return True
+    return verify_password(plain_password, stored_password)
+
+
+def _upgrade_password_if_plain(db: Session, designer: Designer, plain_password: str) -> None:
+    if not is_password_hashed(designer.password or ""):
+        designer.password = hash_password(plain_password)
+        db.commit()
 def ensure_designer_owner(request: Request, designer_id: int) -> None:
     user_type = request.session.get("user_type")
     user_id = request.session.get("user_id")
@@ -84,6 +99,42 @@ def dashboard(request: Request, designer_id: int, db: Session = Depends(get_db))
     )
 
 
+
+@router.post("/{designer_id}/change-password")
+def change_password(
+    request: Request,
+    designer_id: int,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    ensure_designer_owner(request, designer_id)
+    designer = db.query(Designer).filter(Designer.id == designer_id).first()
+    if not designer:
+        raise HTTPException(status_code=404, detail="Designer not found")
+
+    cur = (current_password or "").strip()
+    new = (new_password or "").strip()
+    confirm = (confirm_password or "").strip()
+
+    if not _password_matches(cur, designer.password or ""):
+        return RedirectResponse(url=f"/designer/{designer_id}/dashboard?pwd_error=Current+password+is+incorrect", status_code=303)
+
+    _upgrade_password_if_plain(db, designer, cur)
+
+    if len(new) < 8:
+        return RedirectResponse(url=f"/designer/{designer_id}/dashboard?pwd_error=New+password+must+be+at+least+8+characters", status_code=303)
+
+    if new != confirm:
+        return RedirectResponse(url=f"/designer/{designer_id}/dashboard?pwd_error=Password+confirmation+does+not+match", status_code=303)
+
+    if hmac.compare_digest(new, cur):
+        return RedirectResponse(url=f"/designer/{designer_id}/dashboard?pwd_error=New+password+must+be+different", status_code=303)
+
+    designer.password = hash_password(new)
+    db.commit()
+    return RedirectResponse(url=f"/designer/{designer_id}/dashboard?pwd_ok=Password+updated+successfully", status_code=303)
 @router.get("/{designer_id}")
 def profile(request: Request, designer_id: int, db: Session = Depends(get_db)):
     designer = db.query(Designer).filter(Designer.id == designer_id).first()
@@ -274,5 +325,7 @@ def edit_project(
 
     db.commit()
     return RedirectResponse(url=f"/designer/{designer_id}/dashboard", status_code=303)
+
+
 
 

@@ -80,5 +80,45 @@
         </ul>
         <p class="muted">No backend/auth logic has been altered by this UI update.</p>
     </article>
+
+    <article class="glass-card settings-v2-card">
+        <div class="settings-v2-card-head">
+            <h4>
+                <span class="settings-v2-head-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M6 10V8a6 6 0 1 1 12 0v2"/><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M12 14v2"/></svg>
+                </span>
+                Password Helper
+            </h4>
+            <span class="settings-v2-badge settings-v2-badge-info">Safe</span>
+        </div>
+
+        {% if helper_error %}
+        <p class="error-text">{{ helper_error }}</p>
+        {% endif %}
+        {% if helper_message %}
+        <p class="muted">{{ helper_message }}</p>
+        {% endif %}
+
+        <form method="post" action="/admin/settings/password-helper" class="admin-form">
+            <label>Current Password</label>
+            <input type="password" name="current_password" required>
+            <label>New Password</label>
+            <input type="password" name="new_password" minlength="8" required>
+            <label>Confirm New Password</label>
+            <input type="password" name="confirm_password" minlength="8" required>
+            <button type="submit">Generate New Hash</button>
+        </form>
+
+        {% if generated_hash %}
+        <div class="settings-v2-var-row" style="margin-top:10px;">
+            <div class="settings-v2-var-label-wrap" style="width:100%;">
+                <label>Generated ADMIN_PASSWORD_HASH</label>
+                <code class="settings-v2-var-pill" id="generatedHashValue" style="display:block; white-space:pre-wrap; word-break:break-all;">{{ generated_hash }}</code>
+            </div>
+            <button type="button" class="settings-v2-copy" data-copy-target="generatedHashValue">Copy</button>
+        </div>
+        {% endif %}
+    </article>
 </section>
 {% endblock %}
+

@@ -11,6 +11,12 @@ from sqlalchemy.orm import Session
 from app.auth import hash_password, is_password_hashed, verify_password
 from app.database import get_db
 from app.models import Designer, Project, Viewer
+from app.password_reset import (
+    consume_password_reset_token,
+    create_password_reset_token,
+    ensure_password_reset_table,
+    validate_password_reset_token,
+)
 from app.session_utils import build_auth_context
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -19,6 +25,8 @@ IMAGE_DIR = BASE_DIR / "static" / "images"
 IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter()
+
+ensure_password_reset_table()
 
 
 def save_image(upload: UploadFile) -> str:
@@ -208,6 +216,169 @@ def signup_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("signup.html", {"request": request, "auth": auth, "error": None})
 
 
+
+@router.get("/forgot-password")
+def forgot_password_page(request: Request, db: Session = Depends(get_db)):
+    auth = build_auth_context(request, db)
+    return templates.TemplateResponse(
+        "forgot_password.html",
+        {
+            "request": request,
+            "auth": auth,
+            "error": None,
+            "message": None,
+            "reset_link": None,
+        },
+    )
+
+
+@router.post("/forgot-password")
+def forgot_password_submit(
+    request: Request,
+    identifier: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    auth = build_auth_context(request, db)
+    needle = (identifier or "").strip().lower()
+
+    designer = db.query(Designer).filter(Designer.email == needle).first()
+    viewer = db.query(Viewer).filter(Viewer.email == needle).first()
+
+    reset_link = None
+    if designer:
+        token = create_password_reset_token(db, "designer", int(designer.id))
+        reset_link = f"/reset-password?token={token}"
+    elif viewer:
+        token = create_password_reset_token(db, "viewer", int(viewer.id))
+        reset_link = f"/reset-password?token={token}"
+
+    message = "If an account exists, a reset link has been generated."
+    return templates.TemplateResponse(
+        "forgot_password.html",
+        {
+            "request": request,
+            "auth": auth,
+            "error": None,
+            "message": message,
+            "reset_link": reset_link,
+        },
+    )
+
+
+@router.get("/reset-password")
+def reset_password_page(
+    request: Request,
+    token: str = Query(default=""),
+    db: Session = Depends(get_db),
+):
+    auth = build_auth_context(request, db)
+    clean_token = (token or "").strip()
+    valid = bool(clean_token and validate_password_reset_token(db, clean_token))
+
+    return templates.TemplateResponse(
+        "reset_password.html",
+        {
+            "request": request,
+            "auth": auth,
+            "token": clean_token,
+            "valid_token": valid,
+            "error": None,
+            "message": None,
+        },
+    )
+
+
+@router.post("/reset-password")
+def reset_password_submit(
+    request: Request,
+    token: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    auth = build_auth_context(request, db)
+    clean_token = (token or "").strip()
+    pwd = (password or "").strip()
+    confirm = (confirm_password or "").strip()
+
+    payload = validate_password_reset_token(db, clean_token)
+    if not payload:
+        return templates.TemplateResponse(
+            "reset_password.html",
+            {
+                "request": request,
+                "auth": auth,
+                "token": clean_token,
+                "valid_token": False,
+                "error": "Reset link is invalid or expired.",
+                "message": None,
+            },
+            status_code=400,
+        )
+
+    if len(pwd) < 8:
+        return templates.TemplateResponse(
+            "reset_password.html",
+            {
+                "request": request,
+                "auth": auth,
+                "token": clean_token,
+                "valid_token": True,
+                "error": "Password must be at least 8 characters.",
+                "message": None,
+            },
+            status_code=400,
+        )
+
+    if pwd != confirm:
+        return templates.TemplateResponse(
+            "reset_password.html",
+            {
+                "request": request,
+                "auth": auth,
+                "token": clean_token,
+                "valid_token": True,
+                "error": "Password confirmation does not match.",
+                "message": None,
+            },
+            status_code=400,
+        )
+
+    user_type, user_id = payload
+    if user_type == "designer":
+        user = db.query(Designer).filter(Designer.id == user_id).first()
+    else:
+        user = db.query(Viewer).filter(Viewer.id == user_id).first()
+
+    if not user:
+        return templates.TemplateResponse(
+            "reset_password.html",
+            {
+                "request": request,
+                "auth": auth,
+                "token": clean_token,
+                "valid_token": False,
+                "error": "Account not found for this reset link.",
+                "message": None,
+            },
+            status_code=400,
+        )
+
+    user.password = hash_password(pwd)
+    consume_password_reset_token(db, clean_token)
+    db.commit()
+
+    return templates.TemplateResponse(
+        "reset_password.html",
+        {
+            "request": request,
+            "auth": auth,
+            "token": "",
+            "valid_token": False,
+            "error": None,
+            "message": "Password reset successful. You can now log in.",
+        },
+    )
 @router.get("/logout")
 def logout(request: Request):
     request.session.clear()
@@ -342,6 +513,9 @@ def signup_viewer(
     request.session["user_type"] = "viewer"
     request.session["user_id"] = viewer.id
     return RedirectResponse(url=f"/viewer/{viewer.id}", status_code=303)
+
+
+
 
 
 

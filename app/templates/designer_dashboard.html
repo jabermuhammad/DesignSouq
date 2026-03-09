@@ -109,6 +109,31 @@
             </div>
         </article>
 
+        <article class="premium-card dashx-security-panel">
+            <details class="dashx-security-details" {% if request.query_params.get('pwd_ok') or request.query_params.get('pwd_error') %}open{% endif %}>
+                <summary class="dashx-security-summary">
+                    <div class="section-head">
+                        <h3>Account Security</h3>
+                        <small class="muted">Change your Account password</small>
+                    </div>
+                    <span class="dashx-security-trigger">Change Password</span>
+                </summary>
+                <div class="dashx-security-content">
+                    {% if request.query_params.get('pwd_ok') %}
+                    <p class="auth-success">{{ request.query_params.get('pwd_ok') }}</p>
+                    {% endif %}
+                    {% if request.query_params.get('pwd_error') %}
+                    <p class="auth-error">{{ request.query_params.get('pwd_error') }}</p>
+                    {% endif %}
+                    <form method="post" action="/designer/{{ designer.id }}/change-password" class="stack-form dashx-password-form">
+                        <input type="password" name="current_password" placeholder="Current password" required>
+                        <input type="password" name="new_password" placeholder="New password (min 8 chars)" minlength="8" required>
+                        <input type="password" name="confirm_password" placeholder="Confirm new password" minlength="8" required>
+                        <button type="submit">Update Password</button>
+                    </form>
+                </div>
+            </details>
+        </article>
         <article class="premium-card dashboard-v2-section dashx-projects-panel">
             <div class="section-head">
                 <h3>Uploaded Designs</h3>
@@ -221,6 +246,8 @@
 <script src='/static/js/app.js'></script>
 </body>
 </html>
+
+
 
 
 
