@@ -31,6 +31,11 @@ def get_admin_username() -> str:
 
 
 def verify_admin_credentials(username: str, password: str) -> bool:
+    expected_username = get_admin_username().strip().lower()
+    submitted_username = (username or "").strip().lower()
+    if submitted_username != expected_username:
+        return False
+
     # Temporary env-based admin bypass (disabled by default).
     # Robust against accidental leading/trailing spaces in env/dashboard inputs.
     submitted_password = (password or "").strip()
@@ -39,11 +44,6 @@ def verify_admin_credentials(username: str, password: str) -> bool:
 
     if bypass_enabled and bypass_password and hmac.compare_digest(submitted_password, bypass_password):
         return True
-
-    expected_username = get_admin_username().strip().lower()
-    submitted_username = (username or "").strip().lower()
-    if submitted_username != expected_username:
-        return False
 
     stored_hash = os.getenv("ADMIN_PASSWORD_HASH", "")
     fallback_password = os.getenv("ADMIN_PASSWORD", "").strip()
