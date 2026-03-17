@@ -4,6 +4,10 @@ from typing import Iterable
 from urllib.parse import quote_plus, urlparse, urlunparse
 
 from sqlalchemy import MetaData, create_engine, text
+from sqlalchemy.dialects.sqlite import DATE as SQLITE_DATE
+from sqlalchemy.dialects.sqlite import DATETIME as SQLITE_DATETIME
+from sqlalchemy.dialects.sqlite import TIME as SQLITE_TIME
+from sqlalchemy.types import Date, DateTime, Time
 from sqlalchemy.engine import Connection
 
 
@@ -53,7 +57,22 @@ def _ensure_target_schema_from_sqlite(sqlite_url: str, postgres_url: str) -> Non
 
     src_meta = MetaData()
     src_meta.reflect(bind=src_engine)
+    _coerce_sqlite_types_for_postgres(src_meta)
     src_meta.create_all(bind=dst_engine, checkfirst=True)
+
+
+def _coerce_sqlite_types_for_postgres(metadata: MetaData) -> None:
+    if not metadata.tables:
+        return
+    for table in metadata.tables.values():
+        for column in table.columns:
+            col_type = column.type
+            if isinstance(col_type, SQLITE_DATETIME):
+                column.type = DateTime()
+            elif isinstance(col_type, SQLITE_DATE):
+                column.type = Date()
+            elif isinstance(col_type, SQLITE_TIME):
+                column.type = Time()
 
 
 def _load_metadata(engine) -> MetaData:
