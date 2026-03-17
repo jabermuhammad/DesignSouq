@@ -22,4 +22,4 @@ jobs:
 
       - name: Run migration
         run: |
-          python migrate_to_supabase.py --postgres-url "postgresql://postgres:YourStrongAdminPass123!@aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=disable" --truncate
+          python migrate_to_supabase.py --postgres-url "postgresql://postgres.hlfoqhbqqmuksqnmfrgj:YourStrongAdminPass123!@aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=disable" --truncate
