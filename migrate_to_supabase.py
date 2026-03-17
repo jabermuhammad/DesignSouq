@@ -4,9 +4,6 @@ from typing import Iterable
 from urllib.parse import quote_plus, urlparse, urlunparse
 
 from sqlalchemy import MetaData, create_engine, text
-from sqlalchemy.dialects.sqlite import DATE as SQLITE_DATE
-from sqlalchemy.dialects.sqlite import DATETIME as SQLITE_DATETIME
-from sqlalchemy.dialects.sqlite import TIME as SQLITE_TIME
 from sqlalchemy.types import Date, DateTime, Time
 from sqlalchemy.engine import Connection
 
@@ -67,11 +64,14 @@ def _coerce_sqlite_types_for_postgres(metadata: MetaData) -> None:
     for table in metadata.tables.values():
         for column in table.columns:
             col_type = column.type
-            if isinstance(col_type, SQLITE_DATETIME):
+            visit_name = (getattr(col_type, "__visit_name__", "") or "").lower()
+            class_name = col_type.__class__.__name__.lower()
+            type_name = visit_name or class_name
+            if type_name == "datetime":
                 column.type = DateTime()
-            elif isinstance(col_type, SQLITE_DATE):
+            elif type_name == "date":
                 column.type = Date()
-            elif isinstance(col_type, SQLITE_TIME):
+            elif type_name == "time":
                 column.type = Time()
 
 
