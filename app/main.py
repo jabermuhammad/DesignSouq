@@ -41,7 +41,7 @@ app.include_router(viewer.router)
 app.include_router(admin_router)
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health_check():
     return {"status": "online", "message": "DesignSouq is awake!"}
 
