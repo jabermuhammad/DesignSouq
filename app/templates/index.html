@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Design Haat</title>
+    <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg" sizes="32x32">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 <header class="topbar">
-    <a href="/" class="logo">Design Haat</a>
+    <a href="/" class="logo" aria-label="Design Haat Home">
+        <img src="/static/images/logo-main.svg" alt="Design Haat">
+    </a>
     <div class="top-actions">
         {% if auth.is_logged_in %}
             <a href="{{ auth.profile_url }}" class="profile-chip" title="{{ auth.name }}">
@@ -32,7 +35,10 @@
     <div class="cover-overlay"></div>
     <div class="search-box">
         <form method="get" action="/" class="search-form">
-            <input id="searchInput" type="text" name="q" value="{{ q }}" placeholder="Search by skill or category">
+            <div class="search-input-wrap">
+                <input id="searchInput" type="text" name="q" value="{{ q }}" placeholder="Search by skill or category" autocomplete="off">
+                <button type="button" class="search-clear" aria-label="Clear search">&times;</button>
+            </div>
             <select name="category">
                 <option value="">All Categories</option>
                 {% for c in categories %}
@@ -41,6 +47,7 @@
             </select>
             <button type="submit">Search</button>
         </form>
+        <p class="search-hint">Press Enter to search. You can also filter by category.</p>
         <ul id="suggestions" class="suggestions">
             {% for s in suggestions %}<li>{{ s }}</li>{% endfor %}
         </ul>
@@ -48,11 +55,34 @@
 </section>
 
 <main class="container">
+    <div class="filter-row">
+        <span class="filter-label">Browse</span>
+        <div class="filter-chips">
+            <a class="filter-chip {% if not selected_category %}is-active{% endif %}" href="/{% if q %}?q={{ q }}{% endif %}">All</a>
+            {% for c in categories %}
+            <a class="filter-chip {% if selected_category == c %}is-active{% endif %}" href="/?category={{ c }}{% if q %}&q={{ q }}{% endif %}">{{ c }}</a>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if projects|length == 0 %}
+    <section class="empty-state">
+        <div class="empty-illustration" aria-hidden="true">
+            <div class="empty-orb"></div>
+            <div class="empty-orb small"></div>
+            <div class="empty-card"></div>
+        </div>
+        <h2>No designs found</h2>
+        <p>Try a different keyword or remove filters to explore more designs.</p>
+        <a class="chip solid" href="/">Clear Filters</a>
+    </section>
+    {% endif %}
+
     <div class="gallery-grid">
         {% for project in projects %}
         <article class="card project-card">
-            <div class="thumb-wrap thumbnail">
-                <img src="/static/images/{{ project.image_filename }}" alt="{{ project.title }}" class="thumb">
+            <div class="thumb-wrap thumbnail" data-title="{{ project.title }}" data-designer="{{ project.designer.full_name }}">
+                <img src="{{ image_url(project.image_filename) }}" alt="{{ project.title }}" class="thumb">
                 <div class="thumb-title project-title-overlay">{{ project.title }}</div>
             </div>
 
@@ -60,17 +90,104 @@
                 <div class="designer-info">
                     <a href="/designer/{{ project.designer.id }}" class="designer-link designer-name">{{ project.designer.full_name }}</a>
                     <a href="/designer/{{ project.designer.id }}" class="designer-avatar-link" data-designer-id="{{ project.designer.id }}" aria-label="{{ project.designer.full_name }} profile">
-                        <img class="designer-avatar" src="/static/images/{{ project.designer.profile_image }}" alt="{{ project.designer.full_name }}">
+                        <img class="designer-avatar" src="{{ image_url(project.designer.profile_image, 'default-profile.svg') }}" alt="{{ project.designer.full_name }}">
                     </a>
                     <div class="popup designer-popup"></div>
                 </div>
 
-                <div class="card-actions">
-                    {% if viewer_id %}
-                    <form method="post" action="/viewer/{{ viewer_id }}/follow/{{ project.designer.id }}"><button type="submit">Follow</button></form>
-                    <form method="post" action="/viewer/{{ viewer_id }}/like/{{ project.id }}"><button type="submit">Like</button></form>
-                    <form method="post" action="/viewer/{{ viewer_id }}/wishlist/{{ project.id }}"><button type="submit">Wishlist</button></form>
-                    {% endif %}
+                {% set is_following = project.designer.id in actor_following_ids %}
+                {% set is_liked = project.id in actor_liked_project_ids %}
+                {% set is_wishlisted = project.id in actor_wishlist_ids %}
+                {% set can_show_follow = not (auth.user_type == 'designer' and auth.user_id == project.designer.id) %}
+                <div class="card-actions action-cluster">
+                    <div class="action-grid">
+                        {% if auth.is_logged_in %}
+                            {% if can_show_follow %}
+                            <form method="post" action="/action/follow/{{ project.designer.id }}" class="action-form">
+                                <button type="submit" class="action-btn action-follow-btn {% if is_following %}is-active{% else %}is-filled{% endif %}" aria-pressed="{{ 'true' if is_following else 'false' }}">
+                                    <svg class="action-icon icon-solid" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M10 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z"></path>
+                                        <path d="M3.5 20.5c0-3.1 2.6-5.6 5.8-5.6h1.4c3.2 0 5.8 2.5 5.8 5.6v1H3.5z"></path>
+                                        <path d="M19 4.5v3h-3v2h3v3h2v-3h3v-2h-3v-3z"></path>
+                                    </svg>
+                                    <svg class="action-icon icon-outline" viewBox="0 0 24 24" aria-hidden="true">
+                                        <circle cx="9" cy="7" r="3"></circle>
+                                        <path d="M3 20c0-3.1 2.6-5.6 5.8-5.6h1.4C13.4 14.4 16 16.9 16 20v1H3z"></path>
+                                        <path d="M19 4.5v3h-3v2h3v3h2v-3h3v-2h-3v-3z"></path>
+                                    </svg>
+                                    <span class="sr-only">Follow</span>
+                                </button>
+                            </form>
+                            {% endif %}
+
+                            <form method="post" action="/action/like/{{ project.id }}" class="action-form">
+                                <button type="submit" class="action-btn action-like-btn {% if is_liked %}is-active{% else %}is-filled{% endif %}" aria-pressed="{{ 'true' if is_liked else 'false' }}">
+                                    <svg class="action-icon icon-solid" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M2 10h4v12H2z"></path>
+                                        <path d="M22 10.5v7.5a2.5 2.5 0 0 1-2.5 2.5H9.2a2 2 0 0 1-2-2v-8.7l3.7-6.4a2 2 0 0 1 1.7-.9h1.4a1.5 1.5 0 0 1 1.5 1.8l-.7 4.2h5.2A2.5 2.5 0 0 1 22 10.5z"></path>
+                                    </svg>
+                                    <svg class="action-icon icon-outline" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M2 10h4v12H2z"></path>
+                                        <path d="M22 10.5v7.5a2.5 2.5 0 0 1-2.5 2.5H9.2a2 2 0 0 1-2-2v-8.7l3.7-6.4a2 2 0 0 1 1.7-.9h1.4a1.5 1.5 0 0 1 1.5 1.8l-.7 4.2h5.2A2.5 2.5 0 0 1 22 10.5z"></path>
+                                    </svg>
+                                    <span class="sr-only">Like</span>
+                                </button>
+                            </form>
+
+                            <div class="wishlist-control">
+                                <form method="post" action="/action/wishlist/{{ project.id }}" class="action-form wishlist-form">
+                                    <input type="hidden" name="rating" value="1">
+                                    <button type="submit" class="action-btn action-wishlist-btn {% if is_wishlisted %}is-active{% else %}is-filled{% endif %}" aria-pressed="{{ 'true' if is_wishlisted else 'false' }}">
+                                        <svg class="action-icon icon-solid" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M12 2.5l2.9 5.9 6.5.9-4.7 4.5 1.1 6.4-5.8-3.1-5.8 3.1 1.1-6.4-4.7-4.5 6.5-.9z"></path>
+                                        </svg>
+                                        <svg class="action-icon icon-outline" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M12 3.2l2.6 5.4 6 .9-4.3 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8-4.3-4.1 6-.9z"></path>
+                                        </svg>
+                                        <span class="sr-only">Wishlist</span>
+                                    </button>
+                                </form>
+                            </div>
+                        {% else %}
+                            {% if can_show_follow %}
+                            <a href="/login" class="action-btn action-follow-btn is-filled" aria-label="Login to follow">
+                                <svg class="action-icon icon-solid" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M10 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z"></path>
+                                    <path d="M3.5 20.5c0-3.1 2.6-5.6 5.8-5.6h1.4c3.2 0 5.8 2.5 5.8 5.6v1H3.5z"></path>
+                                    <path d="M19 4.5v3h-3v2h3v3h2v-3h3v-2h-3v-3z"></path>
+                                </svg>
+                                <svg class="action-icon icon-outline" viewBox="0 0 24 24" aria-hidden="true">
+                                    <circle cx="9" cy="7" r="3"></circle>
+                                    <path d="M3 20c0-3.1 2.6-5.6 5.8-5.6h1.4C13.4 14.4 16 16.9 16 20v1H3z"></path>
+                                    <path d="M19 4.5v3h-3v2h3v3h2v-3h3v-2h-3v-3z"></path>
+                                </svg>
+                                <span class="sr-only">Follow</span>
+                            </a>
+                            {% endif %}
+                            <a href="/login" class="action-btn action-like-btn is-filled" aria-label="Login to like">
+                                <svg class="action-icon icon-solid" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M2 10h4v12H2z"></path>
+                                    <path d="M22 10.5v7.5a2.5 2.5 0 0 1-2.5 2.5H9.2a2 2 0 0 1-2-2v-8.7l3.7-6.4a2 2 0 0 1 1.7-.9h1.4a1.5 1.5 0 0 1 1.5 1.8l-.7 4.2h5.2A2.5 2.5 0 0 1 22 10.5z"></path>
+                                </svg>
+                                <svg class="action-icon icon-outline" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M2 10h4v12H2z"></path>
+                                    <path d="M22 10.5v7.5a2.5 2.5 0 0 1-2.5 2.5H9.2a2 2 0 0 1-2-2v-8.7l3.7-6.4a2 2 0 0 1 1.7-.9h1.4a1.5 1.5 0 0 1 1.5 1.8l-.7 4.2h5.2A2.5 2.5 0 0 1 22 10.5z"></path>
+                                </svg>
+                                <span class="sr-only">Like</span>
+                            </a>
+                            <div class="wishlist-control">
+                                <a href="/login" class="action-btn action-wishlist-btn is-filled" aria-label="Login to wishlist">
+                                    <svg class="action-icon icon-solid" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M12 2.5l2.9 5.9 6.5.9-4.7 4.5 1.1 6.4-5.8-3.1-5.8 3.1 1.1-6.4-4.7-4.5 6.5-.9z"></path>
+                                    </svg>
+                                    <svg class="action-icon icon-outline" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M12 3.2l2.6 5.4 6 .9-4.3 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8-4.3-4.1 6-.9z"></path>
+                                    </svg>
+                                    <span class="sr-only">Wishlist</span>
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </article>
@@ -79,18 +196,70 @@
 </main>
 
 <footer class="site-footer">
-    <p>&copy; Jaber Muhammad. All rights reserved.</p>
+    <div class="footer-grid">
+        <div>
+            <img class="footer-logo" src="/static/images/logo-main.svg" alt="Design Haat">
+            <p class="footer-text">A curated space for premium design inspiration and collaboration.</p>
+        </div>
+        <div>
+            <h4>Quick Links</h4>
+            <a href="/">Home</a>
+            <a href="/signup">Sign Up</a>
+            <a href="/login">Login</a>
+            <a href="/admin">Admin Panel</a>
+        </div>
+        <div>
+            <h4>Explore</h4>
+            <a href="/?category=Branding">Branding</a>
+            <a href="/?category=Packaging">Packaging</a>
+            <a href="/?category=UI%20Design">UI Design</a>
+            <a href="/?category=Illustration">Illustration</a>
+        </div>
+        <div>
+            <h4>Connect</h4>
+            <div class="footer-social">
+                {% set facebook_url = footer_settings.get('footer_facebook_url', '') if footer_settings else '' %}
+                {% set instagram_url = footer_settings.get('footer_instagram_url', '') if footer_settings else '' %}
+                {% set behance_url = footer_settings.get('footer_behance_url', '') if footer_settings else '' %}
+                {% if facebook_url %}
+                <a href="{{ facebook_url }}" aria-label="Facebook">Facebook</a>
+                {% else %}
+                <span class="footer-link-muted">Facebook</span>
+                {% endif %}
+                {% if instagram_url %}
+                <a href="{{ instagram_url }}" aria-label="Instagram">Instagram</a>
+                {% else %}
+                <span class="footer-link-muted">Instagram</span>
+                {% endif %}
+                {% if behance_url %}
+                <a href="{{ behance_url }}" aria-label="Behance">Behance</a>
+                {% else %}
+                <span class="footer-link-muted">Behance</span>
+                {% endif %}
+            </div>
+            {% set support_email = footer_settings.get('footer_support_email', '') if footer_settings else '' %}
+            {% if support_email %}
+            <p class="footer-text small">Email: <a class="footer-email" href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+            {% else %}
+            <p class="footer-text small">Email: support@designhaat.com</p>
+            {% endif %}
+        </div>
+    </div>
+    <p class="footer-bottom">&copy; Jaber Muhammad. All rights reserved.</p>
 </footer>
 
 <div id="imageViewer" class="image-viewer">
   <span class="viewer-close">&times;</span>
-  <img id="viewerImage" src="" alt="Fullscreen preview" />
+  <div class="viewer-shell">
+    <img id="viewerImage" src="" alt="Fullscreen preview" />
+    <div class="viewer-meta">
+        <h3 id="viewerTitle"></h3>
+        <p id="viewerDesigner"></p>
+    </div>
+  </div>
 </div>
 
 <script src="/static/js/app.js"></script>
 </body>
 </html>
-
-
-
 

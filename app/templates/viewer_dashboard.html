@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Viewer Dashboard | Design Haat</title>
+    <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg" sizes="32x32">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 <header class="topbar">
-    <a href="/" class="logo">Design Haat</a>
+    <a href="/" class="logo" aria-label="Design Haat Home">
+        <img src="/static/images/logo-main.svg" alt="Design Haat">
+    </a>
     <div class="top-actions">
         <a href="/logout" class="chip">Logout</a>
     </div>
@@ -20,7 +23,7 @@
         <div class="dashboard-v2-user dashx-user">
             <div class="dashboard-v2-user-avatar">
                 <button type="button" id="viewerAvatarTrigger" class="dashboard-avatar-trigger" aria-haspopup="true" aria-expanded="false" aria-controls="viewerAvatarMenu">
-                    <img src="/static/images/{{ viewer.profile_image }}" alt="{{ viewer.full_name }}">
+                    <img src="{{ image_url(viewer.profile_image, 'default-profile.svg') }}" alt="{{ viewer.full_name }}">
                 </button>
 
                 <form id="viewerAvatarForm" method="post" enctype="multipart/form-data" action="/viewer/{{ viewer.id }}/profile-image" class="dashboard-avatar-upload-form">
@@ -29,7 +32,7 @@
 
                 <div id="viewerAvatarMenu" class="dashboard-avatar-menu" role="menu" aria-hidden="true">
                     {% if viewer.profile_image and viewer.profile_image != 'default-profile.svg' %}
-                    <button type="button" class="dashboard-avatar-menu-item js-open-profile-photo" data-photo-src="/static/images/{{ viewer.profile_image }}">View Profile Photo</button>
+                    <button type="button" class="dashboard-avatar-menu-item js-open-profile-photo" data-photo-src="{{ image_url(viewer.profile_image, 'default-profile.svg') }}">View Profile Photo</button>
                     <button type="button" class="dashboard-avatar-menu-item" id="changeViewerPhotoBtn">Change Profile Photo</button>
                     {% else %}
                     <button type="button" class="dashboard-avatar-menu-item" id="changeViewerPhotoBtn">Add Profile Photo</button>

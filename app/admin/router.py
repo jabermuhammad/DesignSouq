@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 
 from app.admin._shared import templates
@@ -15,9 +15,11 @@ from app.admin.security import (
     mark_admin_session,
     verify_admin_credentials,
 )
-from app.admin.storage import ensure_admin_tables
+from app.admin.storage import ensure_admin_tables, get_admin_settings, set_admin_settings
 from app.admin.users import router as users_router
 from app.auth import hash_password
+from app.database import get_db
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -72,6 +74,7 @@ def admin_password_helper(
     current_password: str = Form(...),
     new_password: str = Form(...),
     confirm_password: str = Form(...),
+    db: Session = Depends(get_db),
 ):
     if not is_admin_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=303)
@@ -102,8 +105,40 @@ def admin_password_helper(
             helper_error=error,
             helper_message=helper_message,
             generated_hash=generated_hash,
+            footer_settings=get_admin_settings(db),
         ),
         status_code=400 if error else 200,
+    )
+
+
+@router.post("/settings/footer")
+def admin_footer_settings(
+    request: Request,
+    facebook_url: str = Form(default=""),
+    instagram_url: str = Form(default=""),
+    behance_url: str = Form(default=""),
+    support_email: str = Form(default=""),
+    db: Session = Depends(get_db),
+):
+    if not is_admin_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
+
+    updates = {
+        "footer_facebook_url": facebook_url.strip(),
+        "footer_instagram_url": instagram_url.strip(),
+        "footer_behance_url": behance_url.strip(),
+        "footer_support_email": support_email.strip(),
+    }
+    set_admin_settings(db, updates)
+
+    return templates.TemplateResponse(
+        "admin/settings.html",
+        admin_template_context(
+            request,
+            active_page="settings",
+            footer_settings=get_admin_settings(db),
+            footer_message="Footer links updated successfully.",
+        ),
     )
 
 

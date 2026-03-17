@@ -1,6 +1,5 @@
 import hmac
 from pathlib import Path
-from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
@@ -11,32 +10,17 @@ from app.auth import hash_password, is_password_hashed, verify_password
 from app.database import get_db
 from app.models import Designer, Project, Viewer
 from app.session_utils import build_auth_context
+from app.services.image_storage import save_upload_image
+from app.utils.images import resolve_image_url
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-IMAGE_DIR = BASE_DIR / "static" / "images"
-IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+templates.env.globals["image_url"] = resolve_image_url
 
 router = APIRouter(prefix="/viewer")
 
-ALLOWED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".svg"}
-
-
-def save_image(upload: UploadFile) -> str:
-    suffix = Path(upload.filename or "").suffix.lower() or ".jpg"
-    content_type = (upload.content_type or "").lower()
-
-    if suffix not in ALLOWED_IMAGE_SUFFIXES:
-        raise HTTPException(status_code=400, detail="Unsupported image format")
-
-    if content_type and not content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Invalid file type")
-
-    filename = f"img_{uuid4().hex[:12]}{suffix}"
-    target = IMAGE_DIR / filename
-    with target.open("wb") as out:
-        out.write(upload.file.read())
-    return filename
+def save_image(upload: UploadFile, folder: str = "profiles") -> str:
+    return save_upload_image(upload, folder=folder)
 
 
 

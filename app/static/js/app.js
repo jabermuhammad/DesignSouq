@@ -2,6 +2,7 @@ const accountBtn = document.getElementById("accountBtn");
 const accountMenu = document.getElementById("accountMenu");
 const searchInput = document.getElementById("searchInput");
 const suggestionBox = document.getElementById("suggestions");
+const searchClear = document.querySelector(".search-clear");
 
 function escapeHtml(value) {
   return String(value || "")
@@ -52,6 +53,24 @@ if (searchInput && suggestionBox) {
   searchInput.addEventListener("focus", show);
   searchInput.addEventListener("input", show);
   searchInput.addEventListener("blur", hide);
+}
+
+if (searchInput && searchClear) {
+  const syncClear = () => {
+    if (searchInput.value.trim().length > 0) {
+      searchClear.classList.add("show");
+    } else {
+      searchClear.classList.remove("show");
+    }
+  };
+  syncClear();
+  searchInput.addEventListener("input", syncClear);
+  searchClear.addEventListener("click", () => {
+    searchInput.value = "";
+    syncClear();
+    suggestionBox?.classList.remove("open");
+    searchInput.focus();
+  });
 }
 
 document.querySelectorAll(".project-card").forEach((card) => {
@@ -118,18 +137,36 @@ document.querySelectorAll(".project-card").forEach((card) => {
   popup.addEventListener("mouseleave", hide);
 });
 
+// skeleton loading for gallery thumbnails
+document.querySelectorAll(".thumbnail, .thumb-wrap").forEach((wrap) => {
+  const img = wrap.querySelector("img");
+  if (!img) return;
+  wrap.classList.add("is-loading");
+  const done = () => wrap.classList.remove("is-loading");
+  if (img.complete) {
+    done();
+  } else {
+    img.addEventListener("load", done, { once: true });
+    img.addEventListener("error", done, { once: true });
+  }
+});
+
 function setupImageViewer() {
   const viewer = document.getElementById("imageViewer");
   const viewerImage = document.getElementById("viewerImage");
+  const viewerTitle = document.getElementById("viewerTitle");
+  const viewerDesigner = document.getElementById("viewerDesigner");
   const closeBtn = document.querySelector(".viewer-close");
   const thumbs = Array.from(document.querySelectorAll(".thumbnail"));
 
   if (!viewer || !viewerImage || !closeBtn || !thumbs.length) return;
 
-  const openViewer = (src, alt) => {
+  const openViewer = (src, alt, title, designer) => {
     viewerImage.src = src;
     viewerImage.alt = alt || "Fullscreen preview";
     viewerImage.classList.remove("zoomed");
+    if (viewerTitle) viewerTitle.textContent = title || "";
+    if (viewerDesigner) viewerDesigner.textContent = designer ? `by ${designer}` : "";
     viewer.classList.add("active");
     document.body.classList.add("no-scroll");
   };
@@ -145,7 +182,9 @@ function setupImageViewer() {
     thumb.addEventListener("click", () => {
       const img = thumb.querySelector("img");
       if (!img) return;
-      openViewer(img.src, img.alt);
+      const title = thumb.dataset.title || "";
+      const designer = thumb.dataset.designer || "";
+      openViewer(img.src, img.alt, title, designer);
     });
   });
 
@@ -175,143 +214,19 @@ document.querySelectorAll(".js-image-picker").forEach((input) => {
   });
 });
 
+// wishlist handled by server toggle (form submit)
 
+// no wishlist JS needed
 
-
-
-// ===== Lazy Smooth Vibe (non-breaking additive layer) =====
-(function () {
-  function markLazyMedia() {
-    var media = document.querySelectorAll('img, iframe, video');
-    if (!media.length) return;
-
-    media.forEach(function (el) {
-      if (el.tagName === 'IMG') {
-        if (!el.hasAttribute('loading')) el.setAttribute('loading', 'lazy');
-        if (!el.hasAttribute('decoding')) el.setAttribute('decoding', 'async');
-      }
-
-      if (el.tagName === 'IFRAME') {
-        if (!el.hasAttribute('loading')) el.setAttribute('loading', 'lazy');
-      }
-
-      if (el.tagName === 'VIDEO') {
-        if (!el.hasAttribute('preload')) el.setAttribute('preload', 'none');
-      }
-
-      el.classList.add('vibe-lazy');
-    });
-
-    if (!('IntersectionObserver' in window)) {
-      media.forEach(function (el) {
-        el.classList.add('is-loaded');
-      });
-      return;
-    }
-
-    var loadObserver = new IntersectionObserver(function (entries, obs) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        var target = entry.target;
-
-        if (target.tagName === 'IMG') {
-          if (target.complete) {
-            target.classList.add('is-loaded');
-          } else {
-            target.addEventListener('load', function () {
-              target.classList.add('is-loaded');
-            }, { once: true });
-          }
-        } else {
-          target.classList.add('is-loaded');
-        }
-
-        obs.unobserve(target);
-      });
-    }, { rootMargin: '180px 0px' });
-
-    media.forEach(function (el) { loadObserver.observe(el); });
-  }
-
-  function setupSmoothAnchorScroll() {
-    document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
-      anchor.addEventListener('click', function (e) {
-        var href = anchor.getAttribute('href') || '';
-        if (href.length <= 1) return;
-
-        var target = null;
-        var id = href.slice(1);
-
-        if (id) {
-          target = document.getElementById(id);
-        }
-
-        if (!target) {
-          try {
-            target = document.querySelector(href);
-          } catch (_) {
-            target = null;
-          }
-        }
-
-        if (!target) return;
-
-        e.preventDefault();
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    });
-  }
-
-  function setupScrollReveal() {
-    var candidates = document.querySelectorAll(
-      '.premium-card, .project-card, .dashboard-v2-project-card, .profile-restore-card, .card, .table-wrap, .glass-card'
-    );
-
-    if (!candidates.length) return;
-
-    candidates.forEach(function (el) {
-      if (!el.classList.contains('vibe-reveal')) {
-        el.classList.add('vibe-reveal');
-      }
-    });
-
-    if (!('IntersectionObserver' in window)) {
-      document.querySelectorAll('.vibe-reveal').forEach(function (el) {
-        el.classList.add('in-view');
-      });
-      return;
-    }
-
-    var revealObserver = new IntersectionObserver(function (entries, obs) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add('in-view');
-        obs.unobserve(entry.target);
-      });
-    }, { threshold: 0.14, rootMargin: '0px 0px -40px 0px' });
-
-    document.querySelectorAll('.vibe-reveal').forEach(function (el) {
-      revealObserver.observe(el);
-    });
-  }
-
-  function setupMicroPress() {
-    document.querySelectorAll('button, .chip').forEach(function (el) {
-      el.addEventListener('pointerdown', function () {
-        el.style.transform = 'translateY(0) scale(0.985)';
-      });
-
-      var reset = function () { el.style.transform = ''; };
-      el.addEventListener('pointerup', reset);
-      el.addEventListener('pointerleave', reset);
-      el.addEventListener('blur', reset);
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    markLazyMedia();
-    setupSmoothAnchorScroll();
-    setupScrollReveal();
-    setupMicroPress();
+// micro-animations for action buttons
+document.querySelectorAll(".action-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    btn.classList.remove("is-anim");
+    void btn.offsetWidth;
+    btn.classList.add("is-anim");
   });
-})();
+  btn.addEventListener("animationend", () => {
+    btn.classList.remove("is-anim");
+  });
+});
+

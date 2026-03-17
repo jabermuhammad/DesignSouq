@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Admin Panel{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg" sizes="32x32">
     <link rel="stylesheet" href="/static/admin/css/admin.css">
 </head>
 <body class="admin-theme {% if login_page %}admin-login-page{% endif %}">
@@ -12,8 +13,12 @@
     <aside class="admin-sidebar glass-card">
         <div class="sidebar-glow" aria-hidden="true"></div>
         <div class="brand-wrap">
-            <div class="brand-mark">DH</div>
-            <div class="brand">Design Haat Admin</div>
+            <div class="brand-mark" aria-hidden="true">
+                <img src="/static/images/icon-admin.svg" alt="">
+            </div>
+            <div class="brand">
+                <img src="/static/images/logo-admin.svg" alt="Design Haat Admin">
+            </div>
         </div>
 
         <nav class="sidebar-nav">

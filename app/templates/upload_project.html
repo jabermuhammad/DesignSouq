@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Project</title>
+    <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg" sizes="32x32">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 <header class="topbar">
-    <a href="/" class="chip solid">Design Haat</a>
+    <a href="/" class="logo" aria-label="Design Haat Home">
+        <img src="/static/images/logo-main.svg" alt="Design Haat">
+    </a>
     <div class="top-actions">
         {% if auth and auth.is_logged_in %}
             <a href="{{ auth.profile_url }}" class="profile-chip" title="{{ auth.name }}"><img src="{{ auth.avatar_url }}" alt="{{ auth.name }}"></a>

@@ -92,6 +92,18 @@ body.admin-theme {
     letter-spacing: 0.03em;
 }
 
+.brand-mark img {
+    width: 24px;
+    height: 24px;
+    display: block;
+}
+
+.brand img {
+    height: 26px;
+    width: auto;
+    display: block;
+}
+
 .sidebar-nav {
     position: relative;
     z-index: 1;
@@ -220,10 +232,19 @@ body.admin-theme {
     background: rgba(255, 255, 255, 0.16);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
+.metric-icon svg {
+    width: 18px;
+    height: 18px;
+    color: #dbe6ff;
+}
 
 .metric-card span { color: #d8e4ff; font-size: 0.92rem; }
 .metric-card strong { font-size: 2rem; line-height: 1.05; }
-.metric-card .trend { color: #c2d4ff; font-size: 0.82rem; }
+.metric-card .trend { color: #c2d4ff; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px; }
+.metric-card .trend span { font-weight: 800; font-size: 0.85rem; }
+.trend-up { color: #7ee2b8; }
+.trend-down { color: #ff8b8b; }
+.trend-neutral { color: #c2d4ff; }
 
 .metric-variant-1 { background: linear-gradient(150deg, rgba(32, 66, 132, 0.86), rgba(31, 26, 75, 0.86)); }
 .metric-variant-2 { background: linear-gradient(150deg, rgba(19, 77, 116, 0.86), rgba(25, 33, 86, 0.86)); }
@@ -742,6 +763,21 @@ body.admin-theme {
     color: #cadaf8;
 }
 
+.settings-social-form {
+    margin-top: 6px;
+}
+
+.settings-social-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+}
+
+.settings-social-grid label {
+    color: #c5d7f8;
+    font-size: 0.83rem;
+}
+
 @media (max-width: 720px) {
     .settings-v2-hero {
         grid-template-columns: 1fr;
@@ -750,5 +786,9 @@ body.admin-theme {
     .settings-v2-var-row {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .settings-social-grid {
+        grid-template-columns: 1fr;
     }
 }

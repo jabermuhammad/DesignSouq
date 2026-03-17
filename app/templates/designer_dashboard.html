@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Designer Dashboard | Design Haat</title>
+    <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg" sizes="32x32">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 <header class="topbar">
-    <a href="/" class="logo">Design Haat</a>
+    <a href="/" class="logo" aria-label="Design Haat Home">
+        <img src="/static/images/logo-main.svg" alt="Design Haat">
+    </a>
     <div class="top-actions">
         <a href="/designer/{{ designer.id }}" class="chip">Public Profile</a>
         <a href="/designer/{{ designer.id }}/upload" class="chip solid">Upload Project</a>
@@ -20,7 +23,7 @@
     <aside class="dashboard-v2-sidebar premium-card dashx-sidebar">
         <div class="dashx-sidebar-glow" aria-hidden="true"></div>
         <div class="dashboard-v2-user dashx-user">
-            <img src="/static/images/{{ designer.profile_image }}" alt="{{ designer.full_name }}">
+            <img src="{{ image_url(designer.profile_image, 'default-profile.svg') }}" alt="{{ designer.full_name }}">
             <div>
                 <h2>{{ designer.full_name }}</h2>
                 <p>@{{ designer.username or 'designer' }}</p>
@@ -145,7 +148,7 @@
                    data-title="{{ project.title }}"
                    data-likes="{{ project.liked_by|length }}"
                    data-saves="{{ project.wishlisted_by|length }}">
-                    <img src="/static/images/{{ project.image_filename }}" alt="{{ project.title }}">
+                    <img src="{{ image_url(project.image_filename) }}" alt="{{ project.title }}">
                     <div class="dashboard-v2-project-meta">
                         <h4>{{ project.title }}</h4>
                         <p>{{ project.category }}</p>

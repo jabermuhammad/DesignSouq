@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.admin._shared import templates
 from app.admin.security import admin_template_context, is_admin_authenticated
-from app.admin.storage import get_ban_map, get_featured_project_ids
+from app.admin.storage import get_admin_settings, get_ban_map, get_featured_project_ids
 from app.database import get_db
 from app.models import Designer, Project, Viewer, viewer_follows, viewer_likes, viewer_wishlist
 
@@ -89,12 +89,16 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/settings")
-def settings_page(request: Request):
+def settings_page(request: Request, db: Session = Depends(get_db)):
     redirect = _admin_only(request)
     if redirect:
         return redirect
 
     return templates.TemplateResponse(
         "admin/settings.html",
-        admin_template_context(request, active_page="settings"),
+        admin_template_context(
+            request,
+            active_page="settings",
+            footer_settings=get_admin_settings(db),
+        ),
     )

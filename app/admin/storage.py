@@ -8,49 +8,118 @@ from sqlalchemy.orm import Session
 from app.database import engine
 
 
+def _is_sqlite() -> bool:
+    return engine.dialect.name == "sqlite"
+
+
 def ensure_admin_tables() -> None:
     with engine.begin() as conn:
-        conn.execute(
-            text(
-                """
-                CREATE TABLE IF NOT EXISTS admin_designer_bans (
-                    designer_id INTEGER PRIMARY KEY,
-                    is_active INTEGER NOT NULL DEFAULT 1,
-                    reason TEXT NOT NULL DEFAULT '',
-                    banned_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        if _is_sqlite():
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS admin_designer_bans (
+                        designer_id INTEGER PRIMARY KEY,
+                        is_active INTEGER NOT NULL DEFAULT 1,
+                        reason TEXT NOT NULL DEFAULT '',
+                        banned_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
                 )
-                """
             )
-        )
-        conn.execute(
-            text(
-                """
-                CREATE TABLE IF NOT EXISTS admin_reports (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    target_type TEXT NOT NULL,
-                    target_id INTEGER NOT NULL,
-                    reporter_name TEXT NOT NULL DEFAULT '',
-                    reporter_email TEXT NOT NULL DEFAULT '',
-                    reason TEXT NOT NULL,
-                    status TEXT NOT NULL DEFAULT 'open',
-                    action_note TEXT NOT NULL DEFAULT '',
-                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    reviewed_at TEXT
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS admin_reports (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        target_type TEXT NOT NULL,
+                        target_id INTEGER NOT NULL,
+                        reporter_name TEXT NOT NULL DEFAULT '',
+                        reporter_email TEXT NOT NULL DEFAULT '',
+                        reason TEXT NOT NULL,
+                        status TEXT NOT NULL DEFAULT 'open',
+                        action_note TEXT NOT NULL DEFAULT '',
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        reviewed_at TEXT
+                    )
+                    """
                 )
-                """
             )
-        )
-        conn.execute(
-            text(
-                """
-                CREATE TABLE IF NOT EXISTS admin_featured_projects (
-                    project_id INTEGER PRIMARY KEY,
-                    featured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS admin_featured_projects (
+                        project_id INTEGER PRIMARY KEY,
+                        featured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
                 )
-                """
             )
-        )
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS admin_settings (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL DEFAULT '',
+                        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+        else:
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS admin_designer_bans (
+                        designer_id INTEGER PRIMARY KEY,
+                        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                        reason TEXT NOT NULL DEFAULT '',
+                        banned_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS admin_reports (
+                        id BIGSERIAL PRIMARY KEY,
+                        target_type TEXT NOT NULL,
+                        target_id INTEGER NOT NULL,
+                        reporter_name TEXT NOT NULL DEFAULT '',
+                        reporter_email TEXT NOT NULL DEFAULT '',
+                        reason TEXT NOT NULL,
+                        status TEXT NOT NULL DEFAULT 'open',
+                        action_note TEXT NOT NULL DEFAULT '',
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        reviewed_at TIMESTAMPTZ
+                    )
+                    """
+                )
+            )
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS admin_featured_projects (
+                        project_id INTEGER PRIMARY KEY,
+                        featured_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS admin_settings (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL DEFAULT '',
+                        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
 
 
 def get_ban_map(db: Session) -> dict[int, dict]:
@@ -63,6 +132,29 @@ def get_ban_map(db: Session) -> dict[int, dict]:
         )
     ).mappings()
     return {int(row["designer_id"]): dict(row) for row in rows}
+
+
+def get_admin_settings(db: Session) -> dict[str, str]:
+    rows = db.execute(
+        text("SELECT key, value FROM admin_settings")
+    ).mappings().all()
+    return {str(row["key"]): str(row["value"]) for row in rows}
+
+
+def set_admin_settings(db: Session, updates: dict[str, str]) -> None:
+    now = datetime.utcnow().isoformat(sep=" ", timespec="seconds")
+    for key, value in updates.items():
+        db.execute(
+            text(
+                """
+                INSERT INTO admin_settings (key, value, updated_at)
+                VALUES (:key, :value, :updated_at)
+                ON CONFLICT(key) DO UPDATE SET value = :value, updated_at = :updated_at
+                """
+            ),
+            {"key": key, "value": value or "", "updated_at": now},
+        )
+    db.commit()
 
 
 def set_designer_ban(db: Session, designer_id: int, reason: str, active: bool) -> None:
@@ -194,18 +286,33 @@ def get_featured_project_ids(db: Session) -> set[int]:
 
 def set_project_featured(db: Session, project_id: int, featured: bool) -> None:
     if featured:
-        db.execute(
-            text(
-                """
-                INSERT OR REPLACE INTO admin_featured_projects (project_id, featured_at)
-                VALUES (:project_id, :featured_at)
-                """
-            ),
-            {
-                "project_id": project_id,
-                "featured_at": datetime.utcnow().isoformat(sep=" ", timespec="seconds"),
-            },
-        )
+        if _is_sqlite():
+            db.execute(
+                text(
+                    """
+                    INSERT OR REPLACE INTO admin_featured_projects (project_id, featured_at)
+                    VALUES (:project_id, :featured_at)
+                    """
+                ),
+                {
+                    "project_id": project_id,
+                    "featured_at": datetime.utcnow().isoformat(sep=" ", timespec="seconds"),
+                },
+            )
+        else:
+            db.execute(
+                text(
+                    """
+                    INSERT INTO admin_featured_projects (project_id, featured_at)
+                    VALUES (:project_id, :featured_at)
+                    ON CONFLICT (project_id) DO UPDATE SET featured_at = EXCLUDED.featured_at
+                    """
+                ),
+                {
+                    "project_id": project_id,
+                    "featured_at": datetime.utcnow().isoformat(sep=" ", timespec="seconds"),
+                },
+            )
     else:
         db.execute(
             text("DELETE FROM admin_featured_projects WHERE project_id = :project_id"),

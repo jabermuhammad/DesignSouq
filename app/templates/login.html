@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | Design Haat</title>
+    <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg" sizes="32x32">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 <header class="topbar">
-    <a href="/" class="logo">Design Haat</a>
+    <a href="/" class="logo" aria-label="Design Haat Home">
+        <img src="/static/images/logo-main.svg" alt="Design Haat">
+    </a>
     <div class="top-actions">
         <a href="/signup" class="chip solid">Sign Up</a>
     </div>
@@ -28,6 +31,11 @@
             <input type="password" name="password" placeholder="Password" required>
             <button type="submit">Login</button>
         </form>
+
+        <div class="auth-switch">
+            <p>Need a Design Haat account?</p>
+            <a href="/signup" class="chip solid">Create an account</a>
+        </div>
 
         <p class="auth-link-row"><a href="/forgot-password">Forgot password?</a></p>
         <p class="auth-link-row">Don't have an account? <a href="/signup">Create one</a></p>

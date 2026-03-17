@@ -1,16 +1,14 @@
 from pathlib import Path
-from uuid import uuid4
-
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import hash_password, is_password_hashed, verify_password
 from app.database import get_db
-from app.models import Designer, Project, Viewer
+from app.models import Designer, Project, ProjectRating, Viewer
 from app.password_reset import (
     consume_password_reset_token,
     create_password_reset_token,
@@ -18,24 +16,24 @@ from app.password_reset import (
     validate_password_reset_token,
 )
 from app.session_utils import build_auth_context
+from app.admin.storage import get_admin_settings
+from app.services.image_storage import save_upload_image
+from app.utils.images import resolve_image_url
+from app.utils.email import send_reset_email
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 IMAGE_DIR = BASE_DIR / "static" / "images"
 IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+templates.env.globals["image_url"] = resolve_image_url
 
 router = APIRouter()
 
 ensure_password_reset_table()
 
 
-def save_image(upload: UploadFile) -> str:
-    suffix = Path(upload.filename or "").suffix.lower() or ".jpg"
-    filename = f"img_{uuid4().hex[:12]}{suffix}"
-    target = IMAGE_DIR / filename
-    with target.open("wb") as out:
-        out.write(upload.file.read())
-    return filename
+def save_image(upload: UploadFile, folder: str = "projects") -> str:
+    return save_upload_image(upload, folder=folder)
 
 
 def _login_designer(request: Request, designer: Designer) -> RedirectResponse:
@@ -63,6 +61,43 @@ def _upgrade_password_if_plain(db: Session, user: Designer | Viewer, plain_passw
         user.password = hash_password(plain_password)
         db.commit()
 
+
+def _resolve_actor_viewer(request: Request, db: Session) -> Viewer | None:
+    user_type = request.session.get("user_type")
+    user_id = request.session.get("user_id")
+
+    if user_type == "viewer" and user_id:
+        return db.query(Viewer).filter(Viewer.id == int(user_id)).first()
+
+    if user_type == "designer" and user_id:
+        designer = db.query(Designer).filter(Designer.id == int(user_id)).first()
+        if not designer:
+            return None
+
+        clean_email = (designer.email or "").strip().lower()
+        actor = db.query(Viewer).filter(func.lower(Viewer.email) == clean_email).first()
+        if actor:
+            return actor
+
+        actor = Viewer(
+            full_name=designer.full_name,
+            username=None,
+            email=clean_email,
+            password="",
+        )
+        db.add(actor)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            actor = db.query(Viewer).filter(func.lower(Viewer.email) == clean_email).first()
+            if actor:
+                return actor
+            return None
+        db.refresh(actor)
+        return actor
+
+    return None
 
 @router.get("/")
 def index(
@@ -104,6 +139,11 @@ def index(
                 suggestions.append(skill)
 
     categories = sorted({item.category for item in all_projects if item.category})
+    actor = _resolve_actor_viewer(request, db)
+    actor_viewer_id = actor.id if actor else None
+    actor_following_ids = [designer.id for designer in actor.following_designers] if actor else []
+    actor_liked_project_ids = [project.id for project in actor.liked_projects] if actor else []
+    actor_wishlist_ids = [project.id for project in actor.wishlist_projects] if actor else []
 
     return templates.TemplateResponse(
         "index.html",
@@ -115,7 +155,14 @@ def index(
             "q": clean_q,
             "selected_category": clean_category,
             "viewer_id": auth["viewer_id"],
+            "actor_viewer_id": actor_viewer_id,
+            "actor_following_ids": actor_following_ids,
+            "actor_liked_project_ids": actor_liked_project_ids,
+            "actor_wishlist_ids": actor_wishlist_ids,
+            "session_user_type": request.session.get("user_type"),
+            "session_user_id": request.session.get("user_id"),
             "auth": auth,
+            "footer_settings": get_admin_settings(db),
         },
     )
 
@@ -155,7 +202,7 @@ def preview_api(designer_id: int, db: Session = Depends(get_db)):
         "projects": total_projects,
         "followers": len(designer.followers),
         "address": designer.address,
-        "profile_image": f"/static/images/{designer.profile_image}",
+        "profile_image": resolve_image_url(designer.profile_image, "default-profile.svg"),
         "profile_url": f"/designer/{designer.id}",
     }
 
@@ -188,18 +235,10 @@ def login(
         if _password_matches(pwd, designer.password or ""):
             _upgrade_password_if_plain(db, designer, pwd)
             return _login_designer(request, designer)
-        if (designer.password or "") == "":
-            designer.password = hash_password(pwd)
-            db.commit()
-            return _login_designer(request, designer)
 
     for viewer in viewers:
         if _password_matches(pwd, viewer.password or ""):
             _upgrade_password_if_plain(db, viewer, pwd)
-            return _login_viewer(request, viewer)
-        if (viewer.password or "") == "":
-            viewer.password = hash_password(pwd)
-            db.commit()
             return _login_viewer(request, viewer)
 
     auth = build_auth_context(request, db)
@@ -247,10 +286,38 @@ def forgot_password_submit(
     reset_link = None
     if designer:
         token = create_password_reset_token(db, "designer", int(designer.id))
-        reset_link = f"/reset-password?token={token}"
+        reset_link = f"{str(request.base_url).rstrip('/')}/reset-password?token={token}"
+        try:
+            send_reset_email(designer.email, reset_link)
+        except Exception:
+            return templates.TemplateResponse(
+                "forgot_password.html",
+                {
+                    "request": request,
+                    "auth": auth,
+                    "error": "Unable to send reset email right now. Please try again later.",
+                    "message": None,
+                    "reset_link": None,
+                },
+                status_code=500,
+            )
     elif viewer:
         token = create_password_reset_token(db, "viewer", int(viewer.id))
-        reset_link = f"/reset-password?token={token}"
+        reset_link = f"{str(request.base_url).rstrip('/')}/reset-password?token={token}"
+        try:
+            send_reset_email(viewer.email, reset_link)
+        except Exception:
+            return templates.TemplateResponse(
+                "forgot_password.html",
+                {
+                    "request": request,
+                    "auth": auth,
+                    "error": "Unable to send reset email right now. Please try again later.",
+                    "message": None,
+                    "reset_link": None,
+                },
+                status_code=500,
+            )
 
     message = "If an account exists, a reset link has been generated."
     return templates.TemplateResponse(
@@ -260,7 +327,7 @@ def forgot_password_submit(
             "auth": auth,
             "error": None,
             "message": message,
-            "reset_link": reset_link,
+            "reset_link": None,
         },
     )
 
@@ -385,6 +452,97 @@ def logout(request: Request):
     return RedirectResponse(url="/", status_code=303)
 
 
+@router.post("/action/follow/{designer_id}")
+def action_follow(
+    request: Request,
+    designer_id: int,
+    db: Session = Depends(get_db),
+):
+    actor = _resolve_actor_viewer(request, db)
+    if not actor:
+        return RedirectResponse(url="/login", status_code=303)
+
+    current_user_type = request.session.get("user_type")
+    current_user_id = request.session.get("user_id")
+    if current_user_type == "designer" and str(current_user_id) == str(designer_id):
+        return RedirectResponse(url=request.headers.get("referer") or "/", status_code=303)
+
+    designer = db.query(Designer).filter(Designer.id == designer_id).first()
+    if not designer:
+        raise HTTPException(status_code=404, detail="Designer not found")
+
+    if designer in actor.following_designers:
+        actor.following_designers.remove(designer)
+    else:
+        actor.following_designers.append(designer)
+
+    db.commit()
+    return RedirectResponse(url=request.headers.get("referer") or "/", status_code=303)
+
+
+@router.post("/action/like/{project_id}")
+def action_like(
+    request: Request,
+    project_id: int,
+    db: Session = Depends(get_db),
+):
+    actor = _resolve_actor_viewer(request, db)
+    if not actor:
+        return RedirectResponse(url="/login", status_code=303)
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if project in actor.liked_projects:
+        actor.liked_projects.remove(project)
+    else:
+        actor.liked_projects.append(project)
+
+    db.commit()
+    return RedirectResponse(url=request.headers.get("referer") or "/", status_code=303)
+
+
+@router.post("/action/wishlist/{project_id}")
+def action_wishlist(
+    request: Request,
+    project_id: int,
+    rating: str | None = Form(default=None),
+    db: Session = Depends(get_db),
+):
+    actor = _resolve_actor_viewer(request, db)
+    if not actor:
+        return RedirectResponse(url="/login", status_code=303)
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if project in actor.wishlist_projects:
+        actor.wishlist_projects.remove(project)
+    else:
+        actor.wishlist_projects.append(project)
+
+    if rating:
+        try:
+            rating_value = max(1, min(5, int(rating)))
+        except (TypeError, ValueError):
+            rating_value = None
+        if rating_value:
+            existing = (
+                db.query(ProjectRating)
+                .filter(ProjectRating.viewer_id == actor.id, ProjectRating.project_id == project.id)
+                .first()
+            )
+            if existing:
+                existing.rating = rating_value
+            else:
+                db.add(ProjectRating(viewer_id=actor.id, project_id=project.id, rating=rating_value))
+
+    db.commit()
+    return RedirectResponse(url=request.headers.get("referer") or "/", status_code=303)
+
+
 @router.post("/signup/designer")
 def signup_designer(
     request: Request,
@@ -418,7 +576,7 @@ def signup_designer(
 
     profile_image = "default-profile.svg"
     if profile_logo and profile_logo.filename:
-        profile_image = save_image(profile_logo)
+        profile_image = save_image(profile_logo, folder="profiles")
 
     designer = Designer(
         full_name=full_name.strip(),
@@ -513,11 +671,6 @@ def signup_viewer(
     request.session["user_type"] = "viewer"
     request.session["user_id"] = viewer.id
     return RedirectResponse(url=f"/viewer/{viewer.id}", status_code=303)
-
-
-
-
-
 
 
 

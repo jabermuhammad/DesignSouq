@@ -87,3 +87,14 @@ class Project(Base):
     designer = relationship("Designer", back_populates="projects")
     liked_by = relationship("Viewer", secondary=viewer_likes, back_populates="liked_projects")
     wishlisted_by = relationship("Viewer", secondary=viewer_wishlist, back_populates="wishlist_projects")
+
+
+class ProjectRating(Base):
+    __tablename__ = "project_ratings"
+    __table_args__ = (UniqueConstraint("viewer_id", "project_id", name="uq_project_rating"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    viewer_id = Column(Integer, ForeignKey("viewers.id", ondelete="CASCADE"), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    rating = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
