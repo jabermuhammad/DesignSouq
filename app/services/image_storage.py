@@ -52,20 +52,15 @@ def _validate_upload(upload: UploadFile) -> tuple[str, str]:
     return suffix, content_type or "application/octet-stream"
 
 
-def _save_local(upload: UploadFile, suffix: str) -> str:
-    filename = f"img_{uuid4().hex[:12]}{suffix}"
-    target = LOCAL_IMAGE_DIR / filename
-    with target.open("wb") as out:
-        out.write(upload.file.read())
-    return filename
-
-
 def save_upload_image(upload: UploadFile, folder: str = "uploads") -> str:
     suffix, content_type = _validate_upload(upload)
     client = _get_supabase_client()
 
     if client is None:
-        return _save_local(upload, suffix)
+        raise HTTPException(
+            status_code=500,
+            detail="Supabase storage is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+        )
 
     file_bytes = upload.file.read()
     object_name = f"{folder.rstrip('/')}/img_{uuid4().hex[:12]}{suffix}"

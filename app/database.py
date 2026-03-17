@@ -5,14 +5,11 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app import config as _config  # ensure .env is loaded
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres.hlfoqhbqqmuksqnmfrgj:YourStrongAdminPass123!@aws-1-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=disable",
-)
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is required and must point to Supabase Postgres.")
 
 connect_args = {}
-if DATABASE_URL.startswith("sqlite"):
-    connect_args["check_same_thread"] = False
 
 engine = create_engine(
     DATABASE_URL,

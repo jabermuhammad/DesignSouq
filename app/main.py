@@ -3,7 +3,6 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
 
 from app import config as _config  # ensure .env is loaded
@@ -24,55 +23,6 @@ for path in [
 
 Base.metadata.create_all(bind=engine)
 
-
-def _is_sqlite() -> bool:
-    return engine.dialect.name == "sqlite"
-
-
-def _table_exists(table: str) -> bool:
-    if not _is_sqlite():
-        return False
-    with engine.begin() as conn:
-        row = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name=:name"), {"name": table}).first()
-        return row is not None
-
-
-def _ensure_column(table: str, column: str, ddl: str) -> None:
-    if not _is_sqlite():
-        return
-    if not _table_exists(table):
-        return
-    with engine.begin() as conn:
-        cols = {row[1] for row in conn.execute(text(f"PRAGMA table_info({table})"))}
-        if column not in cols:
-            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {ddl}"))
-
-
-if _is_sqlite():
-    # keep legacy SQLite databases compatible
-    _ensure_column("designers", "username", "username VARCHAR(80)")
-    _ensure_column("designers", "full_name", "full_name VARCHAR(120) NOT NULL DEFAULT ''")
-    _ensure_column("designers", "whatsapp", "whatsapp VARCHAR(40) NOT NULL DEFAULT ''")
-    _ensure_column("designers", "address", "address VARCHAR(255) NOT NULL DEFAULT ''")
-    _ensure_column("designers", "bio", "bio TEXT NOT NULL DEFAULT ''")
-    _ensure_column("designers", "website_url", "website_url VARCHAR(255) NOT NULL DEFAULT ''")
-    _ensure_column("designers", "facebook_url", "facebook_url VARCHAR(255) NOT NULL DEFAULT ''")
-    _ensure_column("designers", "instagram_url", "instagram_url VARCHAR(255) NOT NULL DEFAULT ''")
-    _ensure_column("designers", "behance_url", "behance_url VARCHAR(255) NOT NULL DEFAULT ''")
-    _ensure_column("designers", "dribbble_url", "dribbble_url VARCHAR(255) NOT NULL DEFAULT ''")
-    _ensure_column("designers", "password", "password VARCHAR(255) NOT NULL DEFAULT ''")
-    _ensure_column("designers", "skills", "skills VARCHAR(255) NOT NULL DEFAULT ''")
-    _ensure_column("designers", "profile_image", "profile_image VARCHAR(255) NOT NULL DEFAULT 'default-profile.svg'")
-    _ensure_column("designers", "cover_image", "cover_image VARCHAR(255) NOT NULL DEFAULT 'default-cover.svg'")
-
-    _ensure_column("viewers", "username", "username VARCHAR(80)")
-    _ensure_column("viewers", "full_name", "full_name VARCHAR(120) NOT NULL DEFAULT ''")
-    _ensure_column("viewers", "password", "password VARCHAR(255) NOT NULL DEFAULT ''")
-    _ensure_column("viewers", "profile_image", "profile_image VARCHAR(255) NOT NULL DEFAULT 'default-profile.svg'")
-
-    _ensure_column("projects", "description", "description TEXT NOT NULL DEFAULT ''")
-    _ensure_column("projects", "tags", "tags VARCHAR(255) NOT NULL DEFAULT ''")
-
 app = FastAPI(title="Design Haat", version="1.0.0")
 session_secret = os.getenv("SESSION_SECRET", "design-haat-session-secret")
 session_https_only = os.getenv("SESSION_HTTPS_ONLY", "").strip().lower() in {"1", "true", "yes", "on"}
@@ -92,8 +42,8 @@ app.include_router(admin_router)
 
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
+def health_check():
+    return {"status": "online", "message": "DesignSouq is awake!"}
 
 
 @app.get("/ping")
