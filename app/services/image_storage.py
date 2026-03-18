@@ -14,8 +14,6 @@ except Exception:  # pragma: no cover - optional dependency
     create_client = None
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-LOCAL_IMAGE_DIR = BASE_DIR / "static" / "images"
-LOCAL_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".svg"}
 
