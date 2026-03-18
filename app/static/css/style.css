@@ -302,7 +302,14 @@ a:focus-visible {
     cursor: pointer;
 }
 
-.container { padding: 20px; overflow: visible; position: relative; z-index: 0; }
+.container {
+    padding: 20px;
+    overflow: visible;
+    position: relative;
+    z-index: 0;
+    max-width: 1240px;
+    margin: 0 auto;
+}
 .filter-row {
     display: flex;
     align-items: center;
@@ -332,6 +339,7 @@ a:focus-visible {
     scroll-behavior: smooth;
     -ms-overflow-style: none;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
 }
 .filter-chips-scroll::-webkit-scrollbar {
     display: none;
@@ -3442,6 +3450,8 @@ a:hover {
     .gallery-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .filter-row-inline { flex-direction: column; align-items: flex-start; }
     .filter-chips-scroll { width: 100%; }
+    .topbar { flex-wrap: wrap; gap: 8px; }
+    .top-actions { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
 }
 
 @media (max-width: 760px) {
@@ -3456,6 +3466,7 @@ a:hover {
     .hero-search-field input { font-size: 1.02rem; }
     .filter-row-inline { gap: 8px; }
     .profile-restore-sidebar { padding: 14px; }
+    .top-actions { justify-content: flex-start; }
 }
 
 @media (max-width: 620px) {
