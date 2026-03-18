@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import func, select, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.admin._shared import templates
 from app.admin.security import admin_template_context, is_admin_authenticated
-from app.admin.storage import get_admin_settings, get_ban_map, get_featured_project_ids
+from app.admin.storage import ensure_admin_tables, get_admin_settings, get_ban_map, get_featured_project_ids
 from app.database import get_db
 from app.models import Designer, Project, Viewer, viewer_follows, viewer_likes, viewer_wishlist
 
@@ -35,10 +36,24 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     ban_map = get_ban_map(db)
     banned_designers = sum(1 for item in ban_map.values() if int(item.get("is_active", 0)) == 1)
     featured_count = len(get_featured_project_ids(db))
-    open_reports = int(
-        db.execute(text("SELECT COUNT(*) FROM admin_reports WHERE status = 'open'"))
-        .scalar_one()
-    )
+    try:
+        open_reports = int(
+            db.execute(text("SELECT COUNT(*) FROM admin_reports WHERE status = 'open'"))
+            .scalar_one()
+        )
+    except SQLAlchemyError:
+        try:
+            ensure_admin_tables()
+        except Exception:
+            open_reports = 0
+        else:
+            try:
+                open_reports = int(
+                    db.execute(text("SELECT COUNT(*) FROM admin_reports WHERE status = 'open'"))
+                    .scalar_one()
+                )
+            except SQLAlchemyError:
+                open_reports = 0
 
     recent_designers = db.query(Designer).order_by(Designer.created_at.desc()).limit(8).all()
     recent_viewers = db.query(Viewer).order_by(Viewer.created_at.desc()).limit(8).all()
@@ -50,19 +65,42 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
         .all()
     )
 
-    recent_reports = [
-        dict(row)
-        for row in db.execute(
-            text(
-                """
-                SELECT id, target_type, target_id, reason, status, created_at
-                FROM admin_reports
-                ORDER BY created_at DESC, id DESC
-                LIMIT 8
-                """
-            )
-        ).mappings().all()
-    ]
+    try:
+        recent_reports = [
+            dict(row)
+            for row in db.execute(
+                text(
+                    """
+                    SELECT id, target_type, target_id, reason, status, created_at
+                    FROM admin_reports
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT 8
+                    """
+                )
+            ).mappings().all()
+        ]
+    except SQLAlchemyError:
+        try:
+            ensure_admin_tables()
+        except Exception:
+            recent_reports = []
+        else:
+            try:
+                recent_reports = [
+                    dict(row)
+                    for row in db.execute(
+                        text(
+                            """
+                            SELECT id, target_type, target_id, reason, status, created_at
+                            FROM admin_reports
+                            ORDER BY created_at DESC, id DESC
+                            LIMIT 8
+                            """
+                        )
+                    ).mappings().all()
+                ]
+            except SQLAlchemyError:
+                recent_reports = []
 
     return templates.TemplateResponse(
         "admin/dashboard.html",

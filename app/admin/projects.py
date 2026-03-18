@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import or_, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.admin._shared import templates
 from app.admin.security import admin_template_context, is_admin_authenticated
-from app.admin.storage import get_featured_project_ids
+from app.admin.storage import ensure_admin_tables, get_featured_project_ids
 from app.database import get_db
 from app.models import Designer, Project
 
@@ -44,19 +45,42 @@ def projects_page(
     projects = query.order_by(Project.created_at.desc()).all()
     featured_ids = get_featured_project_ids(db)
 
-    report_counts = {
-        int(row[0]): int(row[1])
-        for row in db.execute(
-            text(
-                """
-                SELECT target_id, COUNT(*)
-                FROM admin_reports
-                WHERE target_type = 'project'
-                GROUP BY target_id
-                """
-            )
-        ).all()
-    }
+    try:
+        report_counts = {
+            int(row[0]): int(row[1])
+            for row in db.execute(
+                text(
+                    """
+                    SELECT target_id, COUNT(*)
+                    FROM admin_reports
+                    WHERE target_type = 'project'
+                    GROUP BY target_id
+                    """
+                )
+            ).all()
+        }
+    except SQLAlchemyError:
+        try:
+            ensure_admin_tables()
+        except Exception:
+            report_counts = {}
+        else:
+            try:
+                report_counts = {
+                    int(row[0]): int(row[1])
+                    for row in db.execute(
+                        text(
+                            """
+                            SELECT target_id, COUNT(*)
+                            FROM admin_reports
+                            WHERE target_type = 'project'
+                            GROUP BY target_id
+                            """
+                        )
+                    ).all()
+                }
+            except SQLAlchemyError:
+                report_counts = {}
 
     return templates.TemplateResponse(
         "admin/projects.html",
