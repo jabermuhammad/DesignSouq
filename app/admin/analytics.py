@@ -81,28 +81,13 @@ def analytics_page(request: Request, db: Session = Depends(get_db)):
         0,
     )
     def _reports_since(since: datetime) -> int:
-        use_sqlite = bool(db.bind and db.bind.dialect.name == "sqlite")
-        if use_sqlite:
-            value = since.isoformat(sep=" ", timespec="seconds")
-            primary_sql = "SELECT COUNT(*) FROM admin_reports WHERE datetime(created_at) >= :d"
-            primary_params = {"d": value}
-            fallback_sql = "SELECT COUNT(*) FROM admin_reports WHERE created_at >= :d"
-            fallback_params = {"d": since}
-        else:
-            primary_sql = "SELECT COUNT(*) FROM admin_reports WHERE created_at >= :d"
-            primary_params = {"d": since}
-            value = since.isoformat(sep=" ", timespec="seconds")
-            fallback_sql = "SELECT COUNT(*) FROM admin_reports WHERE datetime(created_at) >= :d"
-            fallback_params = {"d": value}
-
-        try:
-            return _count_reports(primary_sql, primary_params)
-        except SQLAlchemyError:
-            try:
-                db.rollback()
-            except Exception:
-                pass
-            return _count_reports(fallback_sql, fallback_params)
+        # Avoid sqlite-only datetime() to keep Postgres happy.
+        # ISO strings compare correctly for SQLite TEXT timestamps.
+        value = since.isoformat(sep=" ", timespec="seconds")
+        return _count_reports(
+            "SELECT COUNT(*) FROM admin_reports WHERE created_at >= :d",
+            {"d": value},
+        )
 
     weekly_new_reports = _reports_since(week_ago)
 
