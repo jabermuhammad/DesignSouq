@@ -1,8 +1,9 @@
 const accountBtn = document.getElementById("accountBtn");
 const accountMenu = document.getElementById("accountMenu");
-const searchInput = document.getElementById("searchInput");
-const suggestionBox = document.getElementById("suggestions");
-const searchClear = document.querySelector(".search-clear");
+const searchInput = document.getElementById("heroSearchInput");
+const suggestionBox = document.getElementById("heroSuggestions");
+const searchClear = document.querySelector(".hero-search-clear");
+const designData = window.DESIGN_DATA || { categories: [], titles: [] };
 
 function escapeHtml(value) {
   return String(value || "")
@@ -24,32 +25,103 @@ if (accountBtn && accountMenu) {
   });
 }
 
-async function loadSuggestions() {
-  if (!searchInput || !suggestionBox) return;
-  const q = encodeURIComponent(searchInput.value.trim());
-  const res = await fetch(`/api/suggestions?q=${q}`);
-  if (!res.ok) return;
-  const data = await res.json();
+function normalizeValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
 
-  suggestionBox.innerHTML = "";
-  (data.items || []).slice(0, 5).forEach((item) => {
-    const li = document.createElement("li");
-    li.textContent = item;
-    li.addEventListener("mousedown", () => {
-      searchInput.value = item;
-    });
-    suggestionBox.appendChild(li);
+function bigrams(input) {
+  const value = normalizeValue(input).replace(/\s+/g, " ");
+  const pairs = [];
+  for (let i = 0; i < value.length - 1; i += 1) {
+    pairs.push(value.slice(i, i + 2));
+  }
+  return pairs;
+}
+
+function similarityScore(a, b) {
+  const x = normalizeValue(a);
+  const y = normalizeValue(b);
+  if (!x || !y) return 0;
+  if (x === y) return 1;
+  if (y.includes(x)) return 0.92;
+  const bx = bigrams(x);
+  const by = bigrams(y);
+  if (!bx.length || !by.length) return 0;
+  let matches = 0;
+  const byCopy = [...by];
+  bx.forEach((pair) => {
+    const idx = byCopy.indexOf(pair);
+    if (idx !== -1) {
+      matches += 1;
+      byCopy.splice(idx, 1);
+    }
+  });
+  return (2 * matches) / (bx.length + by.length);
+}
+
+function buildMatches(items, query, typeLabel) {
+  return (items || [])
+    .map((item) => ({
+      label: item,
+      type: typeLabel,
+      score: similarityScore(query, item),
+    }))
+    .filter((item) => item.score >= 0.32)
+    .sort((a, b) => b.score - a.score);
+}
+
+function uniqueByLabel(list) {
+  const seen = new Set();
+  return list.filter((item) => {
+    const key = item.label.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 
-if (searchInput && suggestionBox) {
-  const show = async () => {
-    await loadSuggestions();
-    suggestionBox.classList.add("open");
-  };
-  const hide = () => suggestionBox.classList.remove("open");
+function loadSuggestions() {
+  if (!searchInput || !suggestionBox) return;
+  const query = searchInput.value.trim();
+  if (!query) {
+    suggestionBox.innerHTML = "";
+    suggestionBox.classList.remove("open");
+    return;
+  }
 
-  searchInput.addEventListener("mouseenter", show);
+  const categoryMatches = buildMatches(designData.categories, query, "Category");
+  const titleMatches = buildMatches(designData.titles, query, "Project");
+  const combined = uniqueByLabel([...categoryMatches, ...titleMatches]).slice(0, 8);
+
+  suggestionBox.innerHTML = "";
+  combined.forEach((item) => {
+    const li = document.createElement("li");
+    const label = document.createElement("span");
+    label.textContent = item.label;
+    const tag = document.createElement("span");
+    tag.className = "suggestion-type";
+    tag.textContent = item.type;
+    li.appendChild(label);
+    li.appendChild(tag);
+    li.addEventListener("mousedown", () => {
+      searchInput.value = item.label;
+    });
+    suggestionBox.appendChild(li);
+  });
+
+  if (combined.length > 0) {
+    suggestionBox.classList.add("open");
+  } else {
+    suggestionBox.classList.remove("open");
+  }
+}
+
+if (searchInput && suggestionBox) {
+  const show = () => loadSuggestions();
+  const hide = () => {
+    setTimeout(() => suggestionBox.classList.remove("open"), 120);
+  };
+
   searchInput.addEventListener("focus", show);
   searchInput.addEventListener("input", show);
   searchInput.addEventListener("blur", hide);

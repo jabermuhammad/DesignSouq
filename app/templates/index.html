@@ -33,34 +33,29 @@
 
 <section class="cover">
     <div class="cover-overlay"></div>
-    <div class="search-box">
-        <form method="get" action="/" class="search-form">
-            <div class="search-input-wrap">
-                <input id="searchInput" type="text" name="q" value="{{ q }}" placeholder="Search by skill or category" autocomplete="off">
-                <button type="button" class="search-clear" aria-label="Clear search">&times;</button>
-            </div>
-            <select name="category">
-                <option value="">All Categories</option>
-                {% for c in categories %}
-                <option value="{{ c }}" {% if selected_category == c %}selected{% endif %}>{{ c }}</option>
-                {% endfor %}
-            </select>
-            <button type="submit">Search</button>
-        </form>
-        <p class="search-hint">Press Enter to search. You can also filter by category.</p>
-        <ul id="suggestions" class="suggestions">
-            {% for s in suggestions %}<li>{{ s }}</li>{% endfor %}
-        </ul>
+    <div class="hero-inner">
+        <div class="hero-search">
+            <form method="get" action="/" class="hero-search-form" role="search">
+                <div class="hero-search-field">
+                    <input id="heroSearchInput" type="text" name="q" value="{{ q }}" placeholder="Search for logos, packaging, book covers, or branding..." autocomplete="off">
+                    <button type="button" class="hero-search-clear" aria-label="Clear search">&times;</button>
+                    <button class="hero-search-icon" type="submit" aria-label="Search">⌕</button>
+                </div>
+                <ul id="heroSuggestions" class="hero-suggestions" role="listbox" aria-label="Search suggestions"></ul>
+            </form>
+        </div>
     </div>
 </section>
 
 <main class="container">
-    <div class="filter-row">
-        <span class="filter-label">Browse</span>
-        <div class="filter-chips">
+    <div class="filter-row filter-row-inline">
+        <span class="filter-label">Featured Categories</span>
+        <div class="filter-chips filter-chips-scroll" role="list">
             <a class="filter-chip {% if not selected_category %}is-active{% endif %}" href="/{% if q %}?q={{ q }}{% endif %}">All</a>
             {% for c in categories %}
-            <a class="filter-chip {% if selected_category == c %}is-active{% endif %}" href="/?category={{ c }}{% if q %}&q={{ q }}{% endif %}">{{ c }}</a>
+                {% if loop.index <= 7 %}
+                <a class="filter-chip {% if selected_category == c %}is-active{% endif %}" href="/?category={{ c }}{% if q %}&q={{ q }}{% endif %}">{{ c }}</a>
+                {% endif %}
             {% endfor %}
         </div>
     </div>
@@ -259,6 +254,12 @@
   </div>
 </div>
 
+<script>
+  window.DESIGN_DATA = {
+    categories: {{ categories|tojson }},
+    titles: {{ projects|map(attribute='title')|list|tojson }}
+  };
+</script>
 <script src="/static/js/app.js"></script>
 </body>
 </html>
