@@ -81,14 +81,28 @@ def analytics_page(request: Request, db: Session = Depends(get_db)):
         0,
     )
     def _reports_since(since: datetime) -> int:
-        if db.bind and db.bind.dialect.name == "sqlite":
+        use_sqlite = bool(db.bind and db.bind.dialect.name == "sqlite")
+        if use_sqlite:
             value = since.isoformat(sep=" ", timespec="seconds")
-            sql = "SELECT COUNT(*) FROM admin_reports WHERE datetime(created_at) >= :d"
-            params = {"d": value}
+            primary_sql = "SELECT COUNT(*) FROM admin_reports WHERE datetime(created_at) >= :d"
+            primary_params = {"d": value}
+            fallback_sql = "SELECT COUNT(*) FROM admin_reports WHERE created_at >= :d"
+            fallback_params = {"d": since}
         else:
-            sql = "SELECT COUNT(*) FROM admin_reports WHERE created_at >= :d"
-            params = {"d": since}
-        return _count_reports(sql, params)
+            primary_sql = "SELECT COUNT(*) FROM admin_reports WHERE created_at >= :d"
+            primary_params = {"d": since}
+            value = since.isoformat(sep=" ", timespec="seconds")
+            fallback_sql = "SELECT COUNT(*) FROM admin_reports WHERE datetime(created_at) >= :d"
+            fallback_params = {"d": value}
+
+        try:
+            return _count_reports(primary_sql, primary_params)
+        except SQLAlchemyError:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            return _count_reports(fallback_sql, fallback_params)
 
     weekly_new_reports = _reports_since(week_ago)
 
