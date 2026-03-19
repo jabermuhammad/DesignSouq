@@ -204,55 +204,63 @@
 
 <footer class="site-footer">
     <div class="footer-grid">
-        <div>
-            <img class="footer-logo" src="/static/images/logo-main.svg" alt="Design Haat">
-            <p class="footer-text">A curated space for premium design inspiration and collaboration.</p>
+        <div class="footer-about">
+            <img class="footer-logo" src="/static/images/footer_logo.svg" alt="Design Haat">
+            <h4 class="footer-title">About Platform</h4>
+            <p class="footer-text footer-justify footer-description"><span class="footer-label">Description:</span> Curating modern design inspiration. Showcase your professional creative</p>
+            <h4 class="footer-title footer-title-tight">Mission Tagline</h4>
+            <p class="footer-text">Shortened Mission of graphic design.</p>
         </div>
-        <div>
-            <h4>Quick Links</h4>
+        <div class="footer-links">
+            <h4 class="footer-title">Quick Links</h4>
             <a href="/">Home</a>
+            <a href="/login">Log In</a>
             <a href="/signup">Sign Up</a>
-            <a href="/login">Login</a>
             <a href="/admin">Admin Panel</a>
         </div>
-        <div>
-            <h4>Explore</h4>
+        <div class="footer-links">
+            <h4 class="footer-title">Explore</h4>
             <a href="/?category=Branding">Branding</a>
-            <a href="/?category=Packaging">Packaging</a>
-            <a href="/?category=UI%20Design">UI Design</a>
+            <a href="/?category=Packaging">Packaging Design</a>
             <a href="/?category=Illustration">Illustration</a>
+            <a href="/?category=Portfolio%20Guidance">Portfolio Guidance</a>
         </div>
-        <div>
-            <h4>Connect</h4>
+        <div class="footer-links">
+            <h4 class="footer-title">Socials</h4>
             <div class="footer-social">
                 {% set facebook_url = footer_settings.get('footer_facebook_url', '') if footer_settings else '' %}
                 {% set instagram_url = footer_settings.get('footer_instagram_url', '') if footer_settings else '' %}
                 {% set behance_url = footer_settings.get('footer_behance_url', '') if footer_settings else '' %}
                 {% if facebook_url %}
-                <a href="{{ facebook_url }}" aria-label="Facebook">Facebook</a>
+                <a class="footer-icon-link" href="{{ facebook_url }}" aria-label="Facebook"><span class="footer-icon" aria-hidden="true">f</span>Facebook</a>
                 {% else %}
-                <span class="footer-link-muted">Facebook</span>
+                <span class="footer-link-muted"><span class="footer-icon" aria-hidden="true">f</span>Facebook</span>
                 {% endif %}
                 {% if instagram_url %}
-                <a href="{{ instagram_url }}" aria-label="Instagram">Instagram</a>
+                <a class="footer-icon-link" href="{{ instagram_url }}" aria-label="Instagram"><span class="footer-icon" aria-hidden="true">in</span>Instagram</a>
                 {% else %}
-                <span class="footer-link-muted">Instagram</span>
+                <span class="footer-link-muted"><span class="footer-icon" aria-hidden="true">in</span>Instagram</span>
                 {% endif %}
                 {% if behance_url %}
-                <a href="{{ behance_url }}" aria-label="Behance">Behance</a>
+                <a class="footer-icon-link" href="{{ behance_url }}" aria-label="Behance"><span class="footer-icon" aria-hidden="true">Be</span>Behance</a>
                 {% else %}
-                <span class="footer-link-muted">Behance</span>
+                <span class="footer-link-muted"><span class="footer-icon" aria-hidden="true">Be</span>Behance</span>
                 {% endif %}
             </div>
+            <h4 class="footer-title footer-title-tight">Connect</h4>
             {% set support_email = footer_settings.get('footer_support_email', '') if footer_settings else '' %}
             {% if support_email %}
-            <p class="footer-text small">Email: <a class="footer-email" href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+            <p class="footer-text small footer-contact-line"><span class="footer-icon" aria-hidden="true">&#9993;</span>Email: <a class="footer-email" href="mailto:{{ support_email }}">{{ support_email }}</a></p>
             {% else %}
-            <p class="footer-text small">Email: support@designhaat.com</p>
+            <p class="footer-text small footer-contact-line"><span class="footer-icon" aria-hidden="true">&#9993;</span>Email: support@designhaat.com</p>
             {% endif %}
+            <p class="footer-text small footer-contact-line"><span class="footer-icon" aria-hidden="true">&#9742;</span>Phone: <a class="footer-email" href="tel:+8801840385567">+8801840385567</a></p>
         </div>
     </div>
-    <p class="footer-bottom">&copy; Jaber Muhammad. All rights reserved.</p>
+    <div class="footer-bottom">
+        <p class="footer-bottom-main">&copy; 2026 Jaber Muhammad. All rights reserved.</p>
+        <p class="footer-bottom-sub">Site developed by Jaber Muhammad</p>
+    </div>
 </footer>
 
 <div id="imageViewer" class="image-viewer">
