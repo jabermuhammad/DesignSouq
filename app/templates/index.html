@@ -15,14 +15,26 @@
     <div class="top-actions">
         {% if auth.is_logged_in %}
             <a href="{{ auth.profile_url }}" class="profile-chip" title="{{ auth.name }}">
-                <img src="{{ auth.avatar_url }}" alt="{{ auth.name }}">
+                <img src="{{ auth.avatar_url if auth.avatar_url else '/static/images/default-profile.svg' }}" alt="{{ auth.name }}">
             </a>
-            <a href="{{ auth.profile_url }}" class="chip">My Profile</a>
-            <a href="/logout" class="chip">Logout</a>
+            <div class="menu-wrap">
+                <button class="icon-btn menu-btn menu-toggle" type="button" aria-label="Open menu" aria-expanded="false">
+                    <span class="menu-line"></span>
+                    <span class="menu-line"></span>
+                    <span class="menu-line"></span>
+                </button>
+                <div class="account-menu menu">
+                    <a href="{{ auth.profile_url }}">My Profile</a>
+                    <a href="/logout">Logout</a>
+                </div>
+            </div>
         {% else %}
-            <div class="account-wrap">
-                <button id="accountBtn" class="chip solid" type="button">Account</button>
-                <div id="accountMenu" class="account-menu">
+            <div class="menu-wrap">
+                <button class="icon-btn avatar-btn menu-toggle" type="button" aria-label="Open account menu" aria-expanded="false">
+                    <img src="/static/images/default-profile.svg" alt="Account">
+                    <span class="avatar-caret" aria-hidden="true"></span>
+                </button>
+                <div class="account-menu menu">
                     <a href="/login">Login</a>
                     <a href="/signup">Sign Up</a>
                 </div>
