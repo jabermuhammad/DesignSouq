@@ -13,7 +13,16 @@
         <img src="/static/images/logo-main.svg" alt="Design Haat">
     </a>
     <div class="top-actions">
-        <a href="/signup" class="chip solid">Sign Up</a>
+        <div class="menu-wrap">
+            <button class="icon-btn avatar-btn menu-toggle" type="button" aria-label="Open account menu" aria-expanded="false">
+                <img src="/static/images/default-profile.svg" alt="Account">
+                <span class="avatar-caret" aria-hidden="true"></span>
+            </button>
+            <div class="account-menu menu">
+                <a href="/login">Login</a>
+                <a href="/signup">Sign Up</a>
+            </div>
+        </div>
     </div>
 </header>
 

@@ -13,7 +13,19 @@
         <img src="/static/images/logo-main.svg" alt="Design Haat">
     </a>
     <div class="top-actions">
-        <a href="/logout" class="chip">Logout</a>
+        <a href="/viewer/{{ viewer.id }}" class="profile-chip" title="{{ viewer.full_name }}">
+            <img src="{{ image_url(viewer.profile_image, 'default-profile.svg') }}" alt="{{ viewer.full_name }}">
+        </a>
+        <div class="menu-wrap">
+            <button class="icon-btn menu-btn menu-toggle" type="button" aria-label="Open menu" aria-expanded="false">
+                <span class="menu-line"></span>
+                <span class="menu-line"></span>
+                <span class="menu-line"></span>
+            </button>
+            <div class="account-menu menu">
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
     </div>
 </header>
 

@@ -13,9 +13,21 @@
         <img src="/static/images/logo-main.svg" alt="Design Haat">
     </a>
     <div class="top-actions">
-        <a href="/designer/{{ designer.id }}" class="chip">Public Profile</a>
-        <a href="/designer/{{ designer.id }}/upload" class="chip solid">Upload Project</a>
-        <a href="/logout" class="chip">Logout</a>
+        <a href="/designer/{{ designer.id }}" class="profile-chip" title="{{ designer.full_name }}">
+            <img src="{{ image_url(designer.profile_image, 'default-profile.svg') }}" alt="{{ designer.full_name }}">
+        </a>
+        <div class="menu-wrap">
+            <button class="icon-btn menu-btn menu-toggle" type="button" aria-label="Open menu" aria-expanded="false">
+                <span class="menu-line"></span>
+                <span class="menu-line"></span>
+                <span class="menu-line"></span>
+            </button>
+            <div class="account-menu menu">
+                <a href="/designer/{{ designer.id }}">Public Profile</a>
+                <a href="/designer/{{ designer.id }}/upload">Upload Project</a>
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
     </div>
 </header>
 

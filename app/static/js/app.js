@@ -1,5 +1,3 @@
-const accountBtn = document.getElementById("accountBtn");
-const accountMenu = document.getElementById("accountMenu");
 const searchInput = document.getElementById("heroSearchInput");
 const suggestionBox = document.getElementById("heroSuggestions");
 const searchClear = document.querySelector(".hero-search-clear");
@@ -14,14 +12,34 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-if (accountBtn && accountMenu) {
-  accountBtn.addEventListener("click", () => {
-    accountMenu.classList.toggle("open");
+const menuPairs = [];
+document.querySelectorAll(".menu-toggle").forEach((btn) => {
+  const wrap = btn.closest(".menu-wrap");
+  const menu = wrap ? wrap.querySelector(".menu") : null;
+  if (!menu) return;
+  menuPairs.push({ btn, menu });
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menuPairs.forEach(({ btn: otherBtn, menu: otherMenu }) => {
+      if (otherMenu !== menu) {
+        otherMenu.classList.remove("open");
+        otherBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+    menu.classList.toggle("open");
+    btn.setAttribute("aria-expanded", menu.classList.contains("open") ? "true" : "false");
   });
+});
+
+if (menuPairs.length > 0) {
   document.addEventListener("click", (e) => {
-    if (!accountMenu.contains(e.target) && e.target !== accountBtn) {
-      accountMenu.classList.remove("open");
-    }
+    menuPairs.forEach(({ btn, menu }) => {
+      if (!menu.contains(e.target) && e.target !== btn) {
+        menu.classList.remove("open");
+        btn.setAttribute("aria-expanded", "false");
+      }
+    });
   });
 }
 
