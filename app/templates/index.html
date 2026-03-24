@@ -85,7 +85,7 @@
     </section>
     {% endif %}
 
-    <div class="gallery-grid">
+    <div class="gallery-grid" data-infinite-per="{{ per }}">
         {% for project in projects %}
         <article class="card project-card">
             <div class="thumb-wrap thumbnail" data-title="{{ project.title }}" data-designer="{{ project.designer.full_name }}">

@@ -163,7 +163,7 @@ if (searchInput && searchClear) {
   });
 }
 
-document.querySelectorAll(".project-card").forEach((card) => {
+function initProjectCard(card) {
   const avatarLink = card.querySelector(".designer-avatar-link");
   const popup = card.querySelector(".popup");
   if (!avatarLink || !popup) return;
@@ -225,10 +225,12 @@ document.querySelectorAll(".project-card").forEach((card) => {
   avatarLink.addEventListener("mouseleave", hide);
   popup.addEventListener("mouseenter", show);
   popup.addEventListener("mouseleave", hide);
-});
+}
+
+document.querySelectorAll(".project-card").forEach((card) => initProjectCard(card));
 
 // skeleton loading for gallery thumbnails
-document.querySelectorAll(".thumbnail, .thumb-wrap").forEach((wrap) => {
+function setupThumbnailLoading(wrap) {
   const img = wrap.querySelector("img");
   if (!img) return;
   wrap.classList.add("is-loading");
@@ -239,6 +241,10 @@ document.querySelectorAll(".thumbnail, .thumb-wrap").forEach((wrap) => {
     img.addEventListener("load", done, { once: true });
     img.addEventListener("error", done, { once: true });
   }
+}
+
+document.querySelectorAll(".thumbnail, .thumb-wrap").forEach((wrap) => {
+  setupThumbnailLoading(wrap);
 });
 
 function setupImageViewer() {
@@ -247,9 +253,8 @@ function setupImageViewer() {
   const viewerTitle = document.getElementById("viewerTitle");
   const viewerDesigner = document.getElementById("viewerDesigner");
   const closeBtn = document.querySelector(".viewer-close");
-  const thumbs = Array.from(document.querySelectorAll(".thumbnail"));
 
-  if (!viewer || !viewerImage || !closeBtn || !thumbs.length) return;
+  if (!viewer || !viewerImage || !closeBtn) return;
 
   const openViewer = (src, alt, title, designer) => {
     viewerImage.src = src;
@@ -268,14 +273,14 @@ function setupImageViewer() {
     document.body.classList.remove("no-scroll");
   };
 
-  thumbs.forEach((thumb) => {
-    thumb.addEventListener("click", () => {
-      const img = thumb.querySelector("img");
-      if (!img) return;
-      const title = thumb.dataset.title || "";
-      const designer = thumb.dataset.designer || "";
-      openViewer(img.src, img.alt, title, designer);
-    });
+  document.addEventListener("click", (event) => {
+    const thumb = event.target.closest(".thumbnail");
+    if (!thumb) return;
+    const img = thumb.querySelector("img");
+    if (!img) return;
+    const title = thumb.dataset.title || "";
+    const designer = thumb.dataset.designer || "";
+    openViewer(img.src, img.alt, title, designer);
   });
 
   closeBtn.addEventListener("click", closeViewer);
@@ -309,14 +314,496 @@ document.querySelectorAll(".js-image-picker").forEach((input) => {
 // no wishlist JS needed
 
 // micro-animations for action buttons
-document.querySelectorAll(".action-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    btn.classList.remove("is-anim");
-    void btn.offsetWidth;
-    btn.classList.add("is-anim");
-  });
-  btn.addEventListener("animationend", () => {
-    btn.classList.remove("is-anim");
-  });
+document.addEventListener("click", (event) => {
+  const btn = event.target.closest(".action-btn");
+  if (!btn) return;
+  btn.classList.remove("is-anim");
+  void btn.offsetWidth;
+  btn.classList.add("is-anim");
 });
+
+document.addEventListener("animationend", (event) => {
+  const btn = event.target;
+  if (!(btn instanceof HTMLElement)) return;
+  if (!btn.classList.contains("action-btn")) return;
+  btn.classList.remove("is-anim");
+});
+
+function getCookieValue(name) {
+  const cookies = document.cookie ? document.cookie.split(";") : [];
+  for (let i = 0; i < cookies.length; i += 1) {
+    const cookie = cookies[i].trim();
+    if (cookie.startsWith(`${name}=`)) {
+      return decodeURIComponent(cookie.slice(name.length + 1));
+    }
+  }
+  return "";
+}
+
+function getCsrfToken(form) {
+  const formToken =
+    form?.querySelector('input[name="csrf_token"]') ||
+    form?.querySelector('input[name="csrfmiddlewaretoken"]');
+  if (formToken?.value) return formToken.value;
+
+  const metaToken =
+    document.querySelector('meta[name="csrf-token"]') ||
+    document.querySelector('meta[name="csrfmiddlewaretoken"]');
+  if (metaToken?.getAttribute("content")) return metaToken.getAttribute("content");
+
+  return (
+    getCookieValue("csrf_token") ||
+    getCookieValue("csrftoken") ||
+    getCookieValue("csrf")
+  );
+}
+
+function resolveActionType(actionUrl, button) {
+  if (button?.classList.contains("action-follow-btn") || button?.classList.contains("designer-follow-btn")) {
+    return "follow";
+  }
+  if (button?.classList.contains("action-like-btn")) return "like";
+  if (button?.classList.contains("action-wishlist-btn")) return "wishlist";
+  if (actionUrl.includes("/follow/")) return "follow";
+  if (actionUrl.includes("/like/")) return "like";
+  if (actionUrl.includes("/wishlist/")) return "wishlist";
+  return "";
+}
+
+function resolveActiveState(actionType, data) {
+  if (!data || typeof data !== "object") return null;
+  if (typeof data.active === "boolean") return data.active;
+  if (typeof data.is_active === "boolean") return data.is_active;
+
+  const map = {
+    follow: ["following", "is_following", "followed"],
+    like: ["liked", "is_liked"],
+    wishlist: ["wishlisted", "is_wishlisted", "starred"],
+  };
+  const keys = map[actionType] || [];
+  for (let i = 0; i < keys.length; i += 1) {
+    const value = data[keys[i]];
+    if (typeof value === "boolean") return value;
+  }
+  return null;
+}
+
+function resolveCount(actionType, data) {
+  if (!data || typeof data !== "object") return null;
+  if (typeof data.count === "number") return data.count;
+  const map = {
+    follow: ["followers_count", "follower_count"],
+    like: ["likes_count", "like_count"],
+    wishlist: ["wishlist_count", "stars_count", "star_count", "saves_count"],
+  };
+  const keys = map[actionType] || [];
+  for (let i = 0; i < keys.length; i += 1) {
+    const value = data[keys[i]];
+    if (typeof value === "number") return value;
+  }
+  return null;
+}
+
+function updateActionButtonState(button, actionType, isActive, payload) {
+  if (!button || typeof isActive !== "boolean") return;
+
+  if (button.classList.contains("action-btn")) {
+    button.classList.toggle("is-active", isActive);
+    button.classList.toggle("is-filled", !isActive);
+    button.setAttribute("aria-pressed", isActive ? "true" : "false");
+  }
+
+  if (button.classList.contains("designer-follow-btn")) {
+    button.classList.toggle("is-following", isActive);
+    if (payload && typeof payload.label === "string") {
+      button.textContent = payload.label;
+    }
+  }
+}
+
+function updateActionCount(button, actionType, count) {
+  if (typeof count !== "number") return;
+  const explicitTarget = button?.getAttribute("data-count-target");
+  const scope = button?.closest(".project-card") || button?.closest(".profile-restore-sidebar") || document;
+  const target = explicitTarget ? document.querySelector(explicitTarget) : null;
+  const fallback = scope.querySelector(
+    actionType === "follow"
+      ? "[data-followers-count]"
+      : actionType === "like"
+      ? "[data-likes-count]"
+      : "[data-wishlist-count]"
+  );
+  const el = target || fallback;
+  if (el) {
+    el.textContent = `${count}`;
+  }
+}
+
+function getCurrentActiveState(button) {
+  if (!button) return false;
+  if (button.classList.contains("designer-follow-btn")) {
+    return button.classList.contains("is-following");
+  }
+  if (button.classList.contains("action-btn")) {
+    return button.classList.contains("is-active");
+  }
+  const pressed = button.getAttribute("aria-pressed");
+  return pressed === "true";
+}
+
+async function handleActionSubmit(event) {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement)) return;
+
+  const button = form.querySelector("button[type='submit']");
+  if (!button) return;
+
+  const isSupported =
+    button.classList.contains("action-follow-btn") ||
+    button.classList.contains("action-like-btn") ||
+    button.classList.contains("action-wishlist-btn") ||
+    button.classList.contains("designer-follow-btn");
+
+  if (!isSupported) return;
+
+  event.preventDefault();
+
+  if (button.disabled || button.getAttribute("data-ajax-pending") === "true") {
+    return;
+  }
+
+  const actionUrl = form.getAttribute("action") || "";
+  const method = (form.getAttribute("method") || "post").toUpperCase();
+  const actionType = resolveActionType(actionUrl, button);
+  const csrfToken = getCsrfToken(form);
+
+  button.disabled = true;
+  button.setAttribute("data-ajax-pending", "true");
+
+  try {
+    const fetchOptions = {
+      method,
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      credentials: "same-origin",
+    };
+
+    if (csrfToken) {
+      fetchOptions.headers["X-CSRF-Token"] = csrfToken;
+    }
+
+    if (method !== "GET") {
+      const formData = new FormData(form);
+      if (csrfToken && !formData.has("csrf_token") && !formData.has("csrfmiddlewaretoken")) {
+        formData.append("csrf_token", csrfToken);
+      }
+      fetchOptions.body = formData;
+    }
+
+    const response = await fetch(actionUrl, fetchOptions);
+    if (!response.ok) {
+      if (response.redirected && response.url) {
+        window.location.assign(response.url);
+      } else {
+        form.submit();
+      }
+      return;
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      const current = getCurrentActiveState(button);
+      updateActionButtonState(button, actionType, !current, null);
+      return;
+    }
+
+    const data = await response.json();
+    const nextActive = resolveActiveState(actionType, data);
+    const nextCount = resolveCount(actionType, data);
+    updateActionButtonState(button, actionType, nextActive, data);
+    updateActionCount(button, actionType, nextCount);
+  } catch (err) {
+    if (form) form.submit();
+  } finally {
+    button.disabled = false;
+    button.removeAttribute("data-ajax-pending");
+  }
+}
+
+document.addEventListener("submit", (event) => {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement)) return;
+  if (!form.matches("form.action-form, form.designer-follow-form")) return;
+  handleActionSubmit(event);
+});
+
+function buildProjectCard(item, auth) {
+  const title = escapeHtml(item.title);
+  const designerName = escapeHtml(item.designer.name);
+  const profileUrl = item.designer.profile_url;
+  const avatarUrl = item.designer.avatar_url;
+  const imageUrl = item.image_url;
+  const isFollowing = Boolean(item.is_following);
+  const isLiked = Boolean(item.is_liked);
+  const isWishlisted = Boolean(item.is_wishlisted);
+  const canShowFollow = Boolean(item.can_show_follow);
+  const loggedIn = Boolean(auth?.is_logged_in);
+
+  const followButton = canShowFollow
+    ? `
+      <form method="post" action="/action/follow/${item.designer.id}" class="action-form">
+        <button type="submit" class="action-btn action-follow-btn ${isFollowing ? "is-active" : "is-filled"}" aria-pressed="${
+          isFollowing ? "true" : "false"
+        }">
+          <svg class="action-icon icon-solid" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M10 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z"></path>
+            <path d="M3.5 20.5c0-3.1 2.6-5.6 5.8-5.6h1.4c3.2 0 5.8 2.5 5.8 5.6v1H3.5z"></path>
+            <path d="M19 4.5v3h-3v2h3v3h2v-3h3v-2h-3v-3z"></path>
+          </svg>
+          <svg class="action-icon icon-outline" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="9" cy="7" r="3"></circle>
+            <path d="M3 20c0-3.1 2.6-5.6 5.8-5.6h1.4C13.4 14.4 16 16.9 16 20v1H3z"></path>
+            <path d="M19 4.5v3h-3v2h3v3h2v-3h3v-2h-3v-3z"></path>
+          </svg>
+          <span class="sr-only">Follow</span>
+        </button>
+      </form>
+    `
+    : "";
+
+  const likeForm = `
+    <form method="post" action="/action/like/${item.id}" class="action-form">
+      <button type="submit" class="action-btn action-like-btn ${isLiked ? "is-active" : "is-filled"}" aria-pressed="${
+        isLiked ? "true" : "false"
+      }">
+        <svg class="action-icon icon-solid" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M2 10h4v12H2z"></path>
+          <path d="M22 10.5v7.5a2.5 2.5 0 0 1-2.5 2.5H9.2a2 2 0 0 1-2-2v-8.7l3.7-6.4a2 2 0 0 1 1.7-.9h1.4a1.5 1.5 0 0 1 1.5 1.8l-.7 4.2h5.2A2.5 2.5 0 0 1 22 10.5z"></path>
+        </svg>
+        <svg class="action-icon icon-outline" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M2 10h4v12H2z"></path>
+          <path d="M22 10.5v7.5a2.5 2.5 0 0 1-2.5 2.5H9.2a2 2 0 0 1-2-2v-8.7l3.7-6.4a2 2 0 0 1 1.7-.9h1.4a1.5 1.5 0 0 1 1.5 1.8l-.7 4.2h5.2A2.5 2.5 0 0 1 22 10.5z"></path>
+        </svg>
+        <span class="sr-only">Like</span>
+      </button>
+    </form>
+  `;
+
+  const wishlistForm = `
+    <div class="wishlist-control">
+      <form method="post" action="/action/wishlist/${item.id}" class="action-form wishlist-form">
+        <input type="hidden" name="rating" value="1">
+        <button type="submit" class="action-btn action-wishlist-btn ${isWishlisted ? "is-active" : "is-filled"}" aria-pressed="${
+          isWishlisted ? "true" : "false"
+        }">
+          <svg class="action-icon icon-solid" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2.5l2.9 5.9 6.5.9-4.7 4.5 1.1 6.4-5.8-3.1-5.8 3.1 1.1-6.4-4.7-4.5 6.5-.9z"></path>
+          </svg>
+          <svg class="action-icon icon-outline" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3.2l2.6 5.4 6 .9-4.3 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8-4.3-4.1 6-.9z"></path>
+          </svg>
+          <span class="sr-only">Wishlist</span>
+        </button>
+      </form>
+    </div>
+  `;
+
+  const guestButtons = `
+    ${canShowFollow ? `
+      <a href="/login" class="action-btn action-follow-btn is-filled" aria-label="Login to follow">
+        <svg class="action-icon icon-solid" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M10 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z"></path>
+          <path d="M3.5 20.5c0-3.1 2.6-5.6 5.8-5.6h1.4c3.2 0 5.8 2.5 5.8 5.6v1H3.5z"></path>
+          <path d="M19 4.5v3h-3v2h3v3h2v-3h3v-2h-3v-3z"></path>
+        </svg>
+        <svg class="action-icon icon-outline" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="9" cy="7" r="3"></circle>
+          <path d="M3 20c0-3.1 2.6-5.6 5.8-5.6h1.4C13.4 14.4 16 16.9 16 20v1H3z"></path>
+          <path d="M19 4.5v3h-3v2h3v3h2v-3h3v-2h-3v-3z"></path>
+        </svg>
+        <span class="sr-only">Follow</span>
+      </a>
+    ` : ""}
+    <a href="/login" class="action-btn action-like-btn is-filled" aria-label="Login to like">
+      <svg class="action-icon icon-solid" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M2 10h4v12H2z"></path>
+        <path d="M22 10.5v7.5a2.5 2.5 0 0 1-2.5 2.5H9.2a2 2 0 0 1-2-2v-8.7l3.7-6.4a2 2 0 0 1 1.7-.9h1.4a1.5 1.5 0 0 1 1.5 1.8l-.7 4.2h5.2A2.5 2.5 0 0 1 22 10.5z"></path>
+      </svg>
+      <svg class="action-icon icon-outline" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M2 10h4v12H2z"></path>
+        <path d="M22 10.5v7.5a2.5 2.5 0 0 1-2.5 2.5H9.2a2 2 0 0 1-2-2v-8.7l3.7-6.4a2 2 0 0 1 1.7-.9h1.4a1.5 1.5 0 0 1 1.5 1.8l-.7 4.2h5.2A2.5 2.5 0 0 1 22 10.5z"></path>
+      </svg>
+      <span class="sr-only">Like</span>
+    </a>
+    <div class="wishlist-control">
+      <a href="/login" class="action-btn action-wishlist-btn is-filled" aria-label="Login to wishlist">
+        <svg class="action-icon icon-solid" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2.5l2.9 5.9 6.5.9-4.7 4.5 1.1 6.4-5.8-3.1-5.8 3.1 1.1-6.4-4.7-4.5 6.5-.9z"></path>
+        </svg>
+        <svg class="action-icon icon-outline" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3.2l2.6 5.4 6 .9-4.3 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8-4.3-4.1 6-.9z"></path>
+        </svg>
+        <span class="sr-only">Wishlist</span>
+      </a>
+    </div>
+  `;
+
+  const actions = loggedIn
+    ? `
+      ${followButton}
+      ${likeForm}
+      ${wishlistForm}
+    `
+    : guestButtons;
+
+  const wrapper = document.createElement("article");
+  wrapper.className = "card project-card";
+  wrapper.innerHTML = `
+    <div class="thumb-wrap thumbnail" data-title="${title}" data-designer="${designerName}">
+      <img src="${imageUrl}" alt="${title}" class="thumb">
+      <div class="thumb-title project-title-overlay">${title}</div>
+    </div>
+
+    <div class="designer-row">
+      <div class="designer-info">
+        <a href="${profileUrl}" class="designer-link designer-name">${designerName}</a>
+        <a href="${profileUrl}" class="designer-avatar-link" data-designer-id="${item.designer.id}" aria-label="${designerName} profile">
+          <img class="designer-avatar" src="${avatarUrl}" alt="${designerName}">
+        </a>
+        <div class="popup designer-popup"></div>
+      </div>
+
+      <div class="card-actions action-cluster">
+        <div class="action-grid">
+          ${actions}
+        </div>
+      </div>
+    </div>
+  `;
+  return wrapper;
+}
+
+function setupInfiniteScroll() {
+  const grid = document.querySelector(".gallery-grid");
+  if (!grid) return;
+
+  const observerTarget = document.createElement("div");
+  observerTarget.setAttribute("data-infinite-sentinel", "true");
+  grid.parentElement?.appendChild(observerTarget);
+
+  const endNote = document.createElement("p");
+  endNote.className = "muted";
+  endNote.textContent = "No more designs.";
+  endNote.hidden = true;
+  grid.parentElement?.appendChild(endNote);
+
+  let page = 2;
+  let loading = false;
+  let hasMore = true;
+  let activeSkeletons = [];
+
+  const params = new URLSearchParams(window.location.search);
+  const baseParams = new URLSearchParams();
+  if (params.get("q")) baseParams.set("q", params.get("q"));
+  if (params.get("category")) baseParams.set("category", params.get("category"));
+
+  const perAttr = Number(grid.getAttribute("data-infinite-per") || window.INFINITE_SCROLL_PER);
+  const perQuery = Number(params.get("per"));
+  const per = Number.isFinite(perAttr) && perAttr > 0 ? perAttr : Number.isFinite(perQuery) && perQuery > 0 ? perQuery : 12;
+  const skeletonCount = Math.min(per, 6);
+  baseParams.set("per", `${per}`);
+
+  const showSkeletons = () => {
+    if (activeSkeletons.length > 0) return;
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < skeletonCount; i += 1) {
+      const card = document.createElement("article");
+      card.className = "card project-card";
+      card.setAttribute("data-skeleton", "true");
+      card.innerHTML = `
+        <div class="thumb-wrap thumbnail is-loading">
+          <img class="thumb" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
+        </div>
+        <div class="designer-row">
+          <div class="designer-info">
+            <span class="designer-link designer-name">&nbsp;</span>
+          </div>
+        </div>
+      `;
+      activeSkeletons.push(card);
+      fragment.appendChild(card);
+    }
+    grid.appendChild(fragment);
+  };
+
+  const clearSkeletons = () => {
+    activeSkeletons.forEach((card) => card.remove());
+    activeSkeletons = [];
+  };
+
+  const loadNext = async () => {
+    if (loading || !hasMore) return;
+    loading = true;
+    showSkeletons();
+    baseParams.set("page", `${page}`);
+
+    try {
+      const res = await fetch(`/api/projects?${baseParams.toString()}`, {
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+        credentials: "same-origin",
+      });
+      if (!res.ok) {
+        clearSkeletons();
+        loading = false;
+        return;
+      }
+      const data = await res.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      const auth = data.auth || {};
+
+      if (items.length === 0) {
+        clearSkeletons();
+        hasMore = false;
+        endNote.hidden = false;
+        loading = false;
+        return;
+      }
+
+      clearSkeletons();
+      items.forEach((item) => {
+        const card = buildProjectCard(item, auth);
+        grid.appendChild(card);
+        initProjectCard(card);
+        const wrap = card.querySelector(".thumbnail, .thumb-wrap");
+        if (wrap) setupThumbnailLoading(wrap);
+      });
+
+      hasMore = Boolean(data.has_more);
+      if (!hasMore) {
+        endNote.hidden = false;
+      }
+      page += 1;
+      loading = false;
+    } catch (err) {
+      clearSkeletons();
+      loading = false;
+    }
+  };
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          loadNext();
+        }
+      });
+    },
+    { rootMargin: "300px 0px", threshold: 0.01 }
+  );
+
+  observer.observe(observerTarget);
+}
+
+setupInfiniteScroll();
 

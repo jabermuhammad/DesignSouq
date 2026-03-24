@@ -12,6 +12,7 @@ from app.models import Designer, Project, Viewer
 from app.session_utils import build_auth_context
 from app.services.image_storage import save_upload_image
 from app.utils.images import resolve_image_url
+from app.admin.storage import get_admin_settings
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -51,6 +52,7 @@ def dashboard(request: Request, viewer_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Viewer not found")
 
     auth = build_auth_context(request, db)
+    footer_settings = get_admin_settings(db)
     return templates.TemplateResponse(
         "viewer_dashboard.html",
         {
@@ -60,6 +62,7 @@ def dashboard(request: Request, viewer_id: int, db: Session = Depends(get_db)):
             "liked": viewer.liked_projects,
             "wishlist": viewer.wishlist_projects,
             "auth": auth,
+            "footer_settings": footer_settings,
         },
     )
 

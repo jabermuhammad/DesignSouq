@@ -2300,6 +2300,7 @@ a:focus-visible {
     width: 56px;
     height: 56px;
     flex: 0 0 56px;
+    z-index: 2;
 }
 
 .dashboard-v2-user-avatar img {
@@ -2363,7 +2364,7 @@ a:focus-visible {
     border-radius: 12px;
     background: #fffdf8;
     box-shadow: 0 10px 24px rgba(16, 30, 43, 0.16);
-    z-index: 50;
+    z-index: 200;
     display: none;
     gap: 4px;
 }
@@ -2556,12 +2557,16 @@ a:focus-visible {
 
 .designer-follow-btn {
     width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: 1px solid #1f3140;
     border-radius: 999px;
     padding: 10px 14px;
     background: linear-gradient(145deg, #1f3140, #172734);
     color: #fff;
     font-weight: 700;
+    text-align: center;
     cursor: pointer;
     transition: all .18s ease;
 }
@@ -3012,7 +3017,7 @@ a:focus-visible {
 .dashx-sidebar {
     position: sticky;
     top: 84px;
-    overflow: hidden;
+    overflow: visible;
     background: linear-gradient(165deg, #111f35 0%, #1a2f4d 60%, #24375a 100%);
     border-color: rgba(147, 175, 219, 0.24);
     color: #e6efff;
@@ -3034,6 +3039,10 @@ a:focus-visible {
 .dashx-note {
     position: relative;
     z-index: 1;
+}
+
+.dashx-user {
+    z-index: 5;
 }
 
 .dashx-user img {

@@ -10,6 +10,7 @@ from app.auth import hash_password, is_password_hashed, verify_password
 from app.database import get_db
 from app.models import Designer, Project, Viewer
 from app.session_utils import build_auth_context
+from app.admin.storage import get_admin_settings
 from app.services.image_storage import save_upload_image
 from app.utils.images import resolve_image_url
 
@@ -78,9 +79,17 @@ def dashboard(request: Request, designer_id: int, db: Session = Depends(get_db))
     }
 
     auth = build_auth_context(request, db)
+    footer_settings = get_admin_settings(db)
     return templates.TemplateResponse(
         "designer_dashboard.html",
-        {"request": request, "designer": designer, "projects": projects[:12], "analytics": analytics, "auth": auth},
+        {
+            "request": request,
+            "designer": designer,
+            "projects": projects[:12],
+            "analytics": analytics,
+            "auth": auth,
+            "footer_settings": footer_settings,
+        },
     )
 
 
@@ -135,6 +144,7 @@ def profile(request: Request, designer_id: int, db: Session = Depends(get_db)):
     )
 
     auth = build_auth_context(request, db)
+    footer_settings = get_admin_settings(db)
     viewer_id = auth.get("viewer_id")
     is_following = False
     if viewer_id:
@@ -154,6 +164,10 @@ def profile(request: Request, designer_id: int, db: Session = Depends(get_db)):
             "is_owner": auth.get("user_type") == "designer" and auth.get("user_id") == designer_id,
             "is_following": is_following,
             "followers_count": followers_count,
+            "footer_settings": footer_settings,
+            "show_follow_button": not (auth.get("user_type") == "designer" and auth.get("user_id") == designer_id),
+            "show_follow_form": bool(auth.get("is_logged_in"))
+            and not (auth.get("user_type") == "designer" and auth.get("user_id") == designer_id),
         },
     )
 
@@ -233,9 +247,10 @@ def upload_page(request: Request, designer_id: int, db: Session = Depends(get_db
         raise HTTPException(status_code=404, detail="Designer not found")
 
     auth = build_auth_context(request, db)
+    footer_settings = get_admin_settings(db)
     return templates.TemplateResponse(
         "upload_project.html",
-        {"request": request, "designer": designer, "project": None, "auth": auth},
+        {"request": request, "designer": designer, "project": None, "auth": auth, "footer_settings": footer_settings},
     )
 
 
@@ -277,9 +292,10 @@ def edit_page(request: Request, designer_id: int, project_id: int, db: Session =
         raise HTTPException(status_code=404, detail="Project not found")
 
     auth = build_auth_context(request, db)
+    footer_settings = get_admin_settings(db)
     return templates.TemplateResponse(
         "upload_project.html",
-        {"request": request, "designer": designer, "project": project, "auth": auth},
+        {"request": request, "designer": designer, "project": project, "auth": auth, "footer_settings": footer_settings},
     )
 
 

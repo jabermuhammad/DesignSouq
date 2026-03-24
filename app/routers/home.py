@@ -104,6 +104,7 @@ def index(
     request: Request,
     q: str = Query(default=""),
     category: str = Query(default=""),
+    per: int = Query(default=12, ge=1, le=24),
     db: Session = Depends(get_db),
 ):
     auth = build_auth_context(request, db)
@@ -126,7 +127,7 @@ def index(
     if clean_category:
         query = query.filter(Project.category.ilike(clean_category))
 
-    projects = query.order_by(Project.created_at.desc()).limit(12).all()
+    projects = query.order_by(Project.created_at.desc()).limit(per).all()
 
     all_designers = db.query(Designer).all()
     all_projects = db.query(Project).all()
@@ -154,6 +155,7 @@ def index(
             "categories": categories,
             "q": clean_q,
             "selected_category": clean_category,
+            "per": per,
             "viewer_id": auth["viewer_id"],
             "actor_viewer_id": actor_viewer_id,
             "actor_following_ids": actor_following_ids,
@@ -207,10 +209,89 @@ def preview_api(designer_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/api/projects")
+def projects_api(
+    request: Request,
+    q: str = Query(default=""),
+    category: str = Query(default=""),
+    page: int = Query(default=1, ge=1),
+    per: int = Query(default=12, ge=1, le=24),
+    db: Session = Depends(get_db),
+):
+    auth = build_auth_context(request, db)
+    actor = _resolve_actor_viewer(request, db)
+
+    following_ids = {designer.id for designer in actor.following_designers} if actor else set()
+    liked_ids = {project.id for project in actor.liked_projects} if actor else set()
+    wishlist_ids = {project.id for project in actor.wishlist_projects} if actor else set()
+
+    query = db.query(Project).join(Designer)
+    clean_q = q.strip()
+    clean_category = category.strip()
+
+    if clean_q:
+        like = f"%{clean_q}%"
+        query = query.filter(
+            or_(
+                Project.title.ilike(like),
+                Project.tags.ilike(like),
+                Project.category.ilike(like),
+                Designer.skills.ilike(like),
+            )
+        )
+
+    if clean_category:
+        query = query.filter(Project.category.ilike(clean_category))
+
+    offset = (page - 1) * per
+    items = query.order_by(Project.created_at.desc()).offset(offset).limit(per + 1).all()
+    has_more = len(items) > per
+    items = items[:per]
+
+    payload = []
+    for project in items:
+        can_show_follow = not (
+            auth.get("user_type") == "designer" and auth.get("user_id") == project.designer.id
+        )
+        payload.append(
+            {
+                "id": project.id,
+                "title": project.title,
+                "image_url": resolve_image_url(project.image_filename),
+                "designer": {
+                    "id": project.designer.id,
+                    "name": project.designer.full_name,
+                    "profile_url": f"/designer/{project.designer.id}",
+                    "avatar_url": resolve_image_url(project.designer.profile_image, "default-profile.svg"),
+                },
+                "is_following": project.designer.id in following_ids,
+                "is_liked": project.id in liked_ids,
+                "is_wishlisted": project.id in wishlist_ids,
+                "can_show_follow": can_show_follow,
+            }
+        )
+
+    return {
+        "items": payload,
+        "page": page,
+        "per": per,
+        "has_more": has_more,
+        "auth": {
+            "is_logged_in": auth.get("is_logged_in"),
+            "user_type": auth.get("user_type"),
+            "user_id": auth.get("user_id"),
+        },
+    }
+
+
 @router.get("/login")
 def login_page(request: Request, db: Session = Depends(get_db)):
     auth = build_auth_context(request, db)
-    return templates.TemplateResponse("login.html", {"request": request, "auth": auth, "error": None})
+    footer_settings = get_admin_settings(db)
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request, "auth": auth, "error": None, "footer_settings": footer_settings},
+    )
 
 
 @router.post("/login")
@@ -220,6 +301,7 @@ def login(
     password: str = Form(...),
     db: Session = Depends(get_db),
 ):
+    footer_settings = get_admin_settings(db)
     needle = identifier.strip()
     needle_lower = needle.lower()
     pwd = password.strip()
@@ -244,7 +326,12 @@ def login(
     auth = build_auth_context(request, db)
     return templates.TemplateResponse(
         "login.html",
-        {"request": request, "auth": auth, "error": "Invalid credentials. Please try again."},
+        {
+            "request": request,
+            "auth": auth,
+            "error": "Invalid credentials. Please try again.",
+            "footer_settings": footer_settings,
+        },
         status_code=400,
     )
 
@@ -252,13 +339,18 @@ def login(
 @router.get("/signup")
 def signup_page(request: Request, db: Session = Depends(get_db)):
     auth = build_auth_context(request, db)
-    return templates.TemplateResponse("signup.html", {"request": request, "auth": auth, "error": None})
+    footer_settings = get_admin_settings(db)
+    return templates.TemplateResponse(
+        "signup.html",
+        {"request": request, "auth": auth, "error": None, "footer_settings": footer_settings},
+    )
 
 
 
 @router.get("/forgot-password")
 def forgot_password_page(request: Request, db: Session = Depends(get_db)):
     auth = build_auth_context(request, db)
+    footer_settings = get_admin_settings(db)
     return templates.TemplateResponse(
         "forgot_password.html",
         {
@@ -267,6 +359,7 @@ def forgot_password_page(request: Request, db: Session = Depends(get_db)):
             "error": None,
             "message": None,
             "reset_link": None,
+            "footer_settings": footer_settings,
         },
     )
 
@@ -278,6 +371,7 @@ def forgot_password_submit(
     db: Session = Depends(get_db),
 ):
     auth = build_auth_context(request, db)
+    footer_settings = get_admin_settings(db)
     needle = (identifier or "").strip().lower()
 
     designer = db.query(Designer).filter(Designer.email == needle).first()
@@ -298,6 +392,7 @@ def forgot_password_submit(
                     "error": "Unable to send reset email right now. Please try again later.",
                     "message": None,
                     "reset_link": None,
+                    "footer_settings": footer_settings,
                 },
                 status_code=500,
             )
@@ -315,6 +410,7 @@ def forgot_password_submit(
                     "error": "Unable to send reset email right now. Please try again later.",
                     "message": None,
                     "reset_link": None,
+                    "footer_settings": footer_settings,
                 },
                 status_code=500,
             )
@@ -328,6 +424,7 @@ def forgot_password_submit(
             "error": None,
             "message": message,
             "reset_link": None,
+            "footer_settings": footer_settings,
         },
     )
 
@@ -339,6 +436,7 @@ def reset_password_page(
     db: Session = Depends(get_db),
 ):
     auth = build_auth_context(request, db)
+    footer_settings = get_admin_settings(db)
     clean_token = (token or "").strip()
     valid = bool(clean_token and validate_password_reset_token(db, clean_token))
 
@@ -351,6 +449,7 @@ def reset_password_page(
             "valid_token": valid,
             "error": None,
             "message": None,
+            "footer_settings": footer_settings,
         },
     )
 
@@ -364,6 +463,7 @@ def reset_password_submit(
     db: Session = Depends(get_db),
 ):
     auth = build_auth_context(request, db)
+    footer_settings = get_admin_settings(db)
     clean_token = (token or "").strip()
     pwd = (password or "").strip()
     confirm = (confirm_password or "").strip()
@@ -379,6 +479,7 @@ def reset_password_submit(
                 "valid_token": False,
                 "error": "Reset link is invalid or expired.",
                 "message": None,
+                "footer_settings": footer_settings,
             },
             status_code=400,
         )
@@ -393,6 +494,7 @@ def reset_password_submit(
                 "valid_token": True,
                 "error": "Password must be at least 8 characters.",
                 "message": None,
+                "footer_settings": footer_settings,
             },
             status_code=400,
         )
@@ -407,6 +509,7 @@ def reset_password_submit(
                 "valid_token": True,
                 "error": "Password confirmation does not match.",
                 "message": None,
+                "footer_settings": footer_settings,
             },
             status_code=400,
         )
@@ -427,6 +530,7 @@ def reset_password_submit(
                 "valid_token": False,
                 "error": "Account not found for this reset link.",
                 "message": None,
+                "footer_settings": footer_settings,
             },
             status_code=400,
         )
@@ -444,6 +548,7 @@ def reset_password_submit(
             "valid_token": False,
             "error": None,
             "message": "Password reset successful. You can now log in.",
+            "footer_settings": footer_settings,
         },
     )
 @router.get("/logout")
@@ -556,6 +661,7 @@ def signup_designer(
     profile_logo: UploadFile | None = File(default=None),
     db: Session = Depends(get_db),
 ):
+    footer_settings = get_admin_settings(db)
     clean_email = email.strip().lower()
     clean_username = username.strip().lower()
     clean_whatsapp = whatsapp.strip()
@@ -570,7 +676,12 @@ def signup_designer(
         auth = build_auth_context(request, db)
         return templates.TemplateResponse(
             "signup.html",
-            {"request": request, "auth": auth, "error": "Email or username already registered."},
+            {
+                "request": request,
+                "auth": auth,
+                "error": "Email or username already registered.",
+                "footer_settings": footer_settings,
+            },
             status_code=400,
         )
 
@@ -598,7 +709,12 @@ def signup_designer(
         auth = build_auth_context(request, db)
         return templates.TemplateResponse(
             "signup.html",
-            {"request": request, "auth": auth, "error": "Email or username already registered."},
+            {
+                "request": request,
+                "auth": auth,
+                "error": "Email or username already registered.",
+                "footer_settings": footer_settings,
+            },
             status_code=400,
         )
     except Exception:
@@ -606,7 +722,12 @@ def signup_designer(
         auth = build_auth_context(request, db)
         return templates.TemplateResponse(
             "signup.html",
-            {"request": request, "auth": auth, "error": "Registration failed. Please try again."},
+            {
+                "request": request,
+                "auth": auth,
+                "error": "Registration failed. Please try again.",
+                "footer_settings": footer_settings,
+            },
             status_code=400,
         )
 
@@ -624,6 +745,7 @@ def signup_viewer(
     password: str = Form(...),
     db: Session = Depends(get_db),
 ):
+    footer_settings = get_admin_settings(db)
     clean_email = email.strip().lower()
     clean_username = username.strip().lower()
 
@@ -637,7 +759,12 @@ def signup_viewer(
         auth = build_auth_context(request, db)
         return templates.TemplateResponse(
             "signup.html",
-            {"request": request, "auth": auth, "error": "Email or username already registered."},
+            {
+                "request": request,
+                "auth": auth,
+                "error": "Email or username already registered.",
+                "footer_settings": footer_settings,
+            },
             status_code=400,
         )
 
@@ -656,7 +783,12 @@ def signup_viewer(
         auth = build_auth_context(request, db)
         return templates.TemplateResponse(
             "signup.html",
-            {"request": request, "auth": auth, "error": "Email or username already registered."},
+            {
+                "request": request,
+                "auth": auth,
+                "error": "Email or username already registered.",
+                "footer_settings": footer_settings,
+            },
             status_code=400,
         )
     except Exception:
@@ -664,7 +796,12 @@ def signup_viewer(
         auth = build_auth_context(request, db)
         return templates.TemplateResponse(
             "signup.html",
-            {"request": request, "auth": auth, "error": "Registration failed. Please try again."},
+            {
+                "request": request,
+                "auth": auth,
+                "error": "Registration failed. Please try again.",
+                "footer_settings": footer_settings,
+            },
             status_code=400,
         )
 
