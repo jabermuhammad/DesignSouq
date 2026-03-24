@@ -2,7 +2,7 @@ import hmac
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -130,10 +130,20 @@ def follow(request: Request, viewer_id: int, designer_id: int, db: Session = Dep
 
     if designer in viewer.following_designers:
         viewer.following_designers.remove(designer)
+        is_following = False
     else:
         viewer.following_designers.append(designer)
+        is_following = True
 
     db.commit()
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JSONResponse(
+            {
+                "active": is_following,
+                "followers_count": len(designer.followers),
+                "label": "Following" if is_following else "Follow Designer",
+            }
+        )
     return RedirectResponse(url="/", status_code=303)
 
 
@@ -147,10 +157,14 @@ def like(request: Request, viewer_id: int, project_id: int, db: Session = Depend
 
     if project in viewer.liked_projects:
         viewer.liked_projects.remove(project)
+        is_liked = False
     else:
         viewer.liked_projects.append(project)
+        is_liked = True
 
     db.commit()
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JSONResponse({"active": is_liked, "likes_count": len(project.liked_by)})
     return RedirectResponse(url="/", status_code=303)
 
 
@@ -164,10 +178,16 @@ def wishlist(request: Request, viewer_id: int, project_id: int, db: Session = De
 
     if project in viewer.wishlist_projects:
         viewer.wishlist_projects.remove(project)
+        is_wishlisted = False
     else:
         viewer.wishlist_projects.append(project)
+        is_wishlisted = True
 
     db.commit()
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JSONResponse(
+            {"active": is_wishlisted, "wishlist_count": len(project.wishlisted_by)}
+        )
     return RedirectResponse(url="/", status_code=303)
 
 

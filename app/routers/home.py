@@ -1,6 +1,6 @@
 from pathlib import Path
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
@@ -565,6 +565,8 @@ def action_follow(
 ):
     actor = _resolve_actor_viewer(request, db)
     if not actor:
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JSONResponse({"redirect": "/login"}, status_code=401)
         return RedirectResponse(url="/login", status_code=303)
 
     current_user_type = request.session.get("user_type")
@@ -578,10 +580,20 @@ def action_follow(
 
     if designer in actor.following_designers:
         actor.following_designers.remove(designer)
+        is_following = False
     else:
         actor.following_designers.append(designer)
+        is_following = True
 
     db.commit()
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JSONResponse(
+            {
+                "active": is_following,
+                "followers_count": len(designer.followers),
+                "label": "Following" if is_following else "Follow Designer",
+            }
+        )
     return RedirectResponse(url=request.headers.get("referer") or "/", status_code=303)
 
 
@@ -593,6 +605,8 @@ def action_like(
 ):
     actor = _resolve_actor_viewer(request, db)
     if not actor:
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JSONResponse({"redirect": "/login"}, status_code=401)
         return RedirectResponse(url="/login", status_code=303)
 
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -601,10 +615,19 @@ def action_like(
 
     if project in actor.liked_projects:
         actor.liked_projects.remove(project)
+        is_liked = False
     else:
         actor.liked_projects.append(project)
+        is_liked = True
 
     db.commit()
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JSONResponse(
+            {
+                "active": is_liked,
+                "likes_count": len(project.liked_by),
+            }
+        )
     return RedirectResponse(url=request.headers.get("referer") or "/", status_code=303)
 
 
@@ -617,6 +640,8 @@ def action_wishlist(
 ):
     actor = _resolve_actor_viewer(request, db)
     if not actor:
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JSONResponse({"redirect": "/login"}, status_code=401)
         return RedirectResponse(url="/login", status_code=303)
 
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -625,8 +650,10 @@ def action_wishlist(
 
     if project in actor.wishlist_projects:
         actor.wishlist_projects.remove(project)
+        is_wishlisted = False
     else:
         actor.wishlist_projects.append(project)
+        is_wishlisted = True
 
     if rating:
         try:
@@ -645,6 +672,13 @@ def action_wishlist(
                 db.add(ProjectRating(viewer_id=actor.id, project_id=project.id, rating=rating_value))
 
     db.commit()
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JSONResponse(
+            {
+                "active": is_wishlisted,
+                "wishlist_count": len(project.wishlisted_by),
+            }
+        )
     return RedirectResponse(url=request.headers.get("referer") or "/", status_code=303)
 
 
