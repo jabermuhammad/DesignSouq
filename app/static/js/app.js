@@ -814,6 +814,10 @@ function setupProfileCropper() {
   ].filter(Boolean);
 
   if (!inputs.length) return;
+  if (!window.Cropper) {
+    console.warn("Cropper.js not loaded");
+    return;
+  }
 
   const modal = document.createElement("div");
   modal.className = "cropper-modal";
@@ -824,7 +828,7 @@ function setupProfileCropper() {
         <button type="button" class="cropper-close" aria-label="Close">&times;</button>
         <div class="cropper-title">Drag the image to adjust</div>
         <div class="cropper-header-actions">
-          <button type="button" class="cropper-undo" aria-label="Undo">↺</button>
+          <button type="button" class="cropper-undo" aria-label="Undo">&#8630;</button>
           <button type="button" class="cropper-upload">Upload</button>
         </div>
       </div>
@@ -835,12 +839,12 @@ function setupProfileCropper() {
         </div>
         <div class="cropper-zoom-fab">
           <button type="button" class="cropper-zoom-btn" data-zoom="in" aria-label="Zoom in">+</button>
-          <button type="button" class="cropper-zoom-btn" data-zoom="out" aria-label="Zoom out">−</button>
+          <button type="button" class="cropper-zoom-btn" data-zoom="out" aria-label="Zoom out">-</button>
         </div>
       </div>
       <div class="cropper-footer">
         <button type="button" class="cropper-save" aria-label="Save">
-          ✓
+          &#10003;
         </button>
       </div>
     </div>
@@ -854,26 +858,11 @@ function setupProfileCropper() {
   const saveBtn = modal.querySelector(".cropper-save");
   const zoomButtons = modal.querySelectorAll(".cropper-zoom-btn");
   const image = modal.querySelector(".cropper-image");
-  const viewport = modal.querySelector(".cropper-viewport");
 
   let activeInput = null;
   let activeForm = null;
-  let naturalWidth = 0;
-  let naturalHeight = 0;
-  let scale = 1;
-  let minScale = 1;
-  let maxScale = 3;
-  let translateX = 0;
-  let translateY = 0;
-  let startX = 0;
-  let startY = 0;
-  let originX = 0;
-  let originY = 0;
-  let dragging = false;
-  let rafPending = false;
-  let pendingX = 0;
-  let pendingY = 0;
   let zoomTimer = null;
+  let cropper = null;
 
   const openModal = () => {
     modal.classList.add("show");
@@ -886,95 +875,19 @@ function setupProfileCropper() {
     if (image) image.src = "";
     activeInput = null;
     activeForm = null;
-    dragging = false;
-  };
-
-  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-
-  const applyTransform = () => {
-    if (!image) return;
-    image.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-  };
-
-  const resetTransform = () => {
-    const rect = viewport.getBoundingClientRect();
-    const viewportSize = rect.width;
-    if (!viewportSize) return;
-    minScale = Math.max(viewportSize / naturalWidth, viewportSize / naturalHeight);
-    maxScale = minScale * 3;
-    scale = minScale;
-    const scaledWidth = naturalWidth * scale;
-    const scaledHeight = naturalHeight * scale;
-    translateX = (viewportSize - scaledWidth) / 2;
-    translateY = (viewportSize - scaledHeight) / 2;
-    applyTransform();
-  };
-
-  const setZoom = (nextScale) => {
-    scale = clamp(nextScale, minScale, maxScale);
-    const rect = viewport.getBoundingClientRect();
-    const viewportSize = rect.width;
-    const scaledWidth = naturalWidth * scale;
-    const scaledHeight = naturalHeight * scale;
-    translateX = clamp(translateX, viewportSize - scaledWidth, 0);
-    translateY = clamp(translateY, viewportSize - scaledHeight, 0);
-    applyTransform();
-  };
-
-  const onPointerDown = (event) => {
-    if (!image) return;
-    dragging = true;
-    startX = event.clientX;
-    startY = event.clientY;
-    originX = translateX;
-    originY = translateY;
-    image.setPointerCapture(event.pointerId);
-  };
-
-  const onPointerMove = (event) => {
-    if (!dragging) return;
-    const rect = viewport.getBoundingClientRect();
-    const viewportSize = rect.width;
-    const scaledWidth = naturalWidth * scale;
-    const scaledHeight = naturalHeight * scale;
-
-    const dx = event.clientX - startX;
-    const dy = event.clientY - startY;
-    pendingX = clamp(originX + dx, viewportSize - scaledWidth, 0);
-    pendingY = clamp(originY + dy, viewportSize - scaledHeight, 0);
-    if (!rafPending) {
-      rafPending = true;
-      requestAnimationFrame(() => {
-        translateX = pendingX;
-        translateY = pendingY;
-        applyTransform();
-        rafPending = false;
-      });
+    if (cropper) {
+      cropper.destroy();
+      cropper = null;
     }
   };
 
-  const onPointerUp = (event) => {
-    dragging = false;
-    if (image) image.releasePointerCapture(event.pointerId);
-  };
-
   const buildCroppedBlob = async () => {
-    const rect = viewport.getBoundingClientRect();
-    const viewportSize = rect.width;
-    const canvasSize = 1024;
-
-    const sx = Math.max(0, -translateX / scale);
-    const sy = Math.max(0, -translateY / scale);
-    const sw = Math.min(naturalWidth - sx, viewportSize / scale);
-    const sh = Math.min(naturalHeight - sy, viewportSize / scale);
-
-    const canvas = document.createElement("canvas");
-    canvas.width = canvasSize;
-    canvas.height = canvasSize;
-    const ctx = canvas.getContext("2d");
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(image, sx, sy, sw, sh, 0, 0, canvasSize, canvasSize);
-
+    if (!cropper) return null;
+    const canvas = cropper.getCroppedCanvas({
+      width: 1024,
+      height: 1024,
+      imageSmoothingQuality: "high",
+    });
     return new Promise((resolve) => {
       canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.92);
     });
@@ -992,20 +905,47 @@ function setupProfileCropper() {
   };
 
   image.addEventListener("load", () => {
-    naturalWidth = image.naturalWidth || 1;
-    naturalHeight = image.naturalHeight || 1;
     openModal();
     requestAnimationFrame(() => {
-      resetTransform();
+      if (cropper) cropper.destroy();
+      cropper = new Cropper(image, {
+        viewMode: 1,
+        dragMode: "move",
+        autoCrop: true,
+        autoCropArea: 0.9,
+        modal: true,
+        guides: false,
+        center: false,
+        highlight: false,
+        background: false,
+        cropBoxMovable: false,
+        cropBoxResizable: false,
+        toggleDragModeOnDblclick: false,
+        movable: true,
+        zoomable: true,
+        scalable: false,
+        rotatable: false,
+        ready() {
+          const boxSize = 900.3751;
+          const container = cropper.getContainerData();
+          const left = (container.width - boxSize) / 2;
+          const top = (container.height - boxSize) / 2;
+          cropper.setCropBoxData({
+            left,
+            top,
+            width: boxSize,
+            height: boxSize,
+          });
+        },
+      });
     });
   });
 
   zoomButtons.forEach((btn) => {
     const stepZoom = () => {
+      if (!cropper) return;
       const direction = btn.getAttribute("data-zoom");
-      const step = (maxScale - minScale) * 0.12;
-      const next = direction === "in" ? scale + step : scale - step;
-      setZoom(next);
+      cropper.zoom(direction === "in" ? 0.08 : -0.08);
     };
 
     btn.addEventListener("click", stepZoom);
@@ -1025,14 +965,9 @@ function setupProfileCropper() {
     btn.addEventListener("mousedown", startHold);
     btn.addEventListener("mouseup", stopHold);
     btn.addEventListener("mouseleave", stopHold);
-    btn.addEventListener("touchstart", startHold, { passive: true });
+    btn.addEventListener("touchstart", startHold, @{ passive = $true });
     btn.addEventListener("touchend", stopHold);
   });
-
-  image.addEventListener("pointerdown", onPointerDown);
-  image.addEventListener("pointermove", onPointerMove);
-  image.addEventListener("pointerup", onPointerUp);
-  image.addEventListener("pointercancel", onPointerUp);
 
   const cancel = () => {
     if (activeInput) activeInput.value = "";
@@ -1044,11 +979,36 @@ function setupProfileCropper() {
     const blob = await buildCroppedBlob();
     if (!blob) return;
     const file = new File([blob], "profile.jpg", { type: "image/jpeg" });
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    activeInput.files = dt.files;
-    closeModal();
-    activeForm.submit();
+    const formData = new FormData();
+    const csrfToken = getCsrfToken(activeForm);
+    formData.append(activeInput.name || "profile_image", file);
+    if (csrfToken) formData.append("csrf_token", csrfToken);
+
+    try {
+      const response = await fetch(activeForm.action, {
+        method: (activeForm.method || "post").toUpperCase(),
+        body: formData,
+        credentials: "same-origin",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+        },
+      });
+      if (!response.ok) {
+        activeForm.submit();
+        return;
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      document.querySelectorAll("img").forEach((img) => {
+        if (img.src && img.src.includes("profile")) {
+          img.src = objectUrl;
+        }
+      });
+      closeModal();
+    } catch (err) {
+      activeForm.submit();
+    }
   };
 
   const triggerUpload = () => {
@@ -1057,7 +1017,7 @@ function setupProfileCropper() {
 
   backdrop.addEventListener("click", cancel);
   closeBtn.addEventListener("click", cancel);
-  if (undoBtn) undoBtn.addEventListener("click", resetTransform);
+  if (undoBtn) undoBtn.addEventListener("click", () => cropper?.reset());
   if (uploadBtn) uploadBtn.addEventListener("click", triggerUpload);
   saveBtn.addEventListener("click", save);
   document.addEventListener("keydown", (event) => {
@@ -1078,4 +1038,5 @@ function setupProfileCropper() {
 }
 
 setupProfileCropper();
+
 
