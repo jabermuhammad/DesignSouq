@@ -2584,6 +2584,19 @@ a:focus-visible {
     pointer-events: none;
 }
 
+.cropper-body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 0 0 16px 16px;
+    z-index: 0;
+}
+
+.cropper-viewport {
+    z-index: 1;
+}
+
 .cropper-zoom-fab {
     position: absolute;
     right: 20px;
