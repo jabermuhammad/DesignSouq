@@ -2555,8 +2555,8 @@ a:focus-visible {
     height: min(70vw, 360px);
     margin: 0 auto;
     background: transparent;
-    border-radius: 50%;
-    overflow: hidden;
+    border-radius: 16px;
+    overflow: visible;
     touch-action: none;
 }
 
@@ -2573,8 +2573,8 @@ a:focus-visible {
 .cropper-circle-mask {
     position: absolute;
     inset: 0;
-    border-radius: 50%;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+    border-radius: 16px;
+    background: radial-gradient(circle at center, transparent 52%, rgba(0, 0, 0, 0.45) 54%);
     pointer-events: none;
 }
 
