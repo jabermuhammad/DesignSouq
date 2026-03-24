@@ -2589,18 +2589,6 @@ a:focus-visible {
     pointer-events: none;
 }
 
-.cropper-mask::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 90%;
-    height: 90%;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35), 0 0 18px rgba(255, 255, 255, 0.18);
-    pointer-events: none;
-}
 
 
 .cropper-zoom-fab {
