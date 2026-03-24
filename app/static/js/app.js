@@ -870,6 +870,10 @@ function setupProfileCropper() {
   let originX = 0;
   let originY = 0;
   let dragging = false;
+  let rafPending = false;
+  let pendingX = 0;
+  let pendingY = 0;
+  let zoomTimer = null;
 
   const openModal = () => {
     modal.classList.add("show");
@@ -936,9 +940,17 @@ function setupProfileCropper() {
 
     const dx = event.clientX - startX;
     const dy = event.clientY - startY;
-    translateX = clamp(originX + dx, viewportSize - scaledWidth, 0);
-    translateY = clamp(originY + dy, viewportSize - scaledHeight, 0);
-    applyTransform();
+    pendingX = clamp(originX + dx, viewportSize - scaledWidth, 0);
+    pendingY = clamp(originY + dy, viewportSize - scaledHeight, 0);
+    if (!rafPending) {
+      rafPending = true;
+      requestAnimationFrame(() => {
+        translateX = pendingX;
+        translateY = pendingY;
+        applyTransform();
+        rafPending = false;
+      });
+    }
   };
 
   const onPointerUp = (event) => {
@@ -949,7 +961,7 @@ function setupProfileCropper() {
   const buildCroppedBlob = async () => {
     const rect = viewport.getBoundingClientRect();
     const viewportSize = rect.width;
-    const canvasSize = 512;
+    const canvasSize = 1024;
 
     const sx = Math.max(0, -translateX / scale);
     const sy = Math.max(0, -translateY / scale);
@@ -989,12 +1001,32 @@ function setupProfileCropper() {
   });
 
   zoomButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
+    const stepZoom = () => {
       const direction = btn.getAttribute("data-zoom");
       const step = (maxScale - minScale) * 0.12;
       const next = direction === "in" ? scale + step : scale - step;
       setZoom(next);
-    });
+    };
+
+    btn.addEventListener("click", stepZoom);
+
+    const startHold = () => {
+      if (zoomTimer) return;
+      zoomTimer = setInterval(stepZoom, 60);
+    };
+
+    const stopHold = () => {
+      if (zoomTimer) {
+        clearInterval(zoomTimer);
+        zoomTimer = null;
+      }
+    };
+
+    btn.addEventListener("mousedown", startHold);
+    btn.addEventListener("mouseup", stopHold);
+    btn.addEventListener("mouseleave", stopHold);
+    btn.addEventListener("touchstart", startHold, { passive: true });
+    btn.addEventListener("touchend", stopHold);
   });
 
   image.addEventListener("pointerdown", onPointerDown);

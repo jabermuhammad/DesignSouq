@@ -2516,8 +2516,9 @@ a:focus-visible {
 }
 
 .cropper-title {
-    font-size: 0.95rem;
-    color: #d7dbde;
+    font-size: 0.92rem;
+    color: #cbd2d6;
+    letter-spacing: 0.2px;
 }
 
 .cropper-header-actions {
@@ -2539,6 +2540,7 @@ a:focus-visible {
     padding: 6px 10px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.08);
+    font-weight: 600;
 }
 
 .cropper-body {
@@ -2587,6 +2589,19 @@ a:focus-visible {
     pointer-events: none;
 }
 
+.cropper-mask::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 90%;
+    height: 90%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35), 0 0 18px rgba(255, 255, 255, 0.18);
+    pointer-events: none;
+}
+
 
 .cropper-zoom-fab {
     position: absolute;
@@ -2609,6 +2624,10 @@ a:focus-visible {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
+.cropper-zoom-btn:active {
+    transform: scale(0.96);
+}
+
 .cropper-footer {
     display: flex;
     justify-content: flex-end;
@@ -2628,6 +2647,10 @@ a:focus-visible {
     font-weight: 700;
     cursor: pointer;
     box-shadow: 0 10px 18px rgba(0, 0, 0, 0.35);
+}
+
+.cropper-save:active {
+    transform: scale(0.98);
 }
 
 @media (max-width: 520px) {
