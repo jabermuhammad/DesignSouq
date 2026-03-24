@@ -2554,7 +2554,7 @@ a:focus-visible {
     width: min(70vw, 360px);
     height: min(70vw, 360px);
     margin: 0 auto;
-    background: #0f1112;
+    background: transparent;
     border-radius: 50%;
     overflow: hidden;
     touch-action: none;
@@ -2574,7 +2574,7 @@ a:focus-visible {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
     pointer-events: none;
 }
 
