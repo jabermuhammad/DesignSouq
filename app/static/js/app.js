@@ -821,24 +821,27 @@ function setupProfileCropper() {
     <div class="cropper-backdrop"></div>
     <div class="cropper-panel" role="dialog" aria-modal="true" aria-label="Crop profile photo">
       <div class="cropper-header">
-        <h3>Crop Profile Photo</h3>
         <button type="button" class="cropper-close" aria-label="Close">&times;</button>
+        <div class="cropper-title">Drag the image to adjust</div>
+        <div class="cropper-header-actions">
+          <button type="button" class="cropper-undo" aria-label="Undo">↺</button>
+          <button type="button" class="cropper-upload">Upload</button>
+        </div>
       </div>
       <div class="cropper-body">
         <div class="cropper-viewport">
           <img class="cropper-image" alt="Crop preview">
-          <div class="cropper-frame" aria-hidden="true"></div>
+          <div class="cropper-circle-mask" aria-hidden="true"></div>
+        </div>
+        <div class="cropper-zoom-fab">
+          <button type="button" class="cropper-zoom-btn" data-zoom="in" aria-label="Zoom in">+</button>
+          <button type="button" class="cropper-zoom-btn" data-zoom="out" aria-label="Zoom out">−</button>
         </div>
       </div>
-      <div class="cropper-controls">
-        <label class="cropper-zoom-label">
-          Zoom
-          <input type="range" min="0" max="100" value="0" class="cropper-zoom">
-        </label>
-        <div class="cropper-actions">
-          <button type="button" class="cropper-cancel">Cancel</button>
-          <button type="button" class="cropper-save">Save</button>
-        </div>
+      <div class="cropper-footer">
+        <button type="button" class="cropper-save" aria-label="Save">
+          ✓
+        </button>
       </div>
     </div>
   `;
@@ -846,9 +849,10 @@ function setupProfileCropper() {
 
   const backdrop = modal.querySelector(".cropper-backdrop");
   const closeBtn = modal.querySelector(".cropper-close");
-  const cancelBtn = modal.querySelector(".cropper-cancel");
+  const undoBtn = modal.querySelector(".cropper-undo");
+  const uploadBtn = modal.querySelector(".cropper-upload");
   const saveBtn = modal.querySelector(".cropper-save");
-  const zoomInput = modal.querySelector(".cropper-zoom");
+  const zoomButtons = modal.querySelectorAll(".cropper-zoom-btn");
   const image = modal.querySelector(".cropper-image");
   const viewport = modal.querySelector(".cropper-viewport");
 
@@ -894,8 +898,6 @@ function setupProfileCropper() {
     minScale = Math.max(viewportSize / naturalWidth, viewportSize / naturalHeight);
     maxScale = minScale * 3;
     scale = minScale;
-    zoomInput.value = "0";
-
     const scaledWidth = naturalWidth * scale;
     const scaledHeight = naturalHeight * scale;
     translateX = (viewportSize - scaledWidth) / 2;
@@ -903,9 +905,8 @@ function setupProfileCropper() {
     applyTransform();
   };
 
-  const setZoom = (value) => {
-    const t = value / 100;
-    scale = minScale + (maxScale - minScale) * t;
+  const setZoom = (nextScale) => {
+    scale = clamp(nextScale, minScale, maxScale);
     const rect = viewport.getBoundingClientRect();
     const viewportSize = rect.width;
     const scaledWidth = naturalWidth * scale;
@@ -984,8 +985,13 @@ function setupProfileCropper() {
     openModal();
   });
 
-  zoomInput.addEventListener("input", () => {
-    setZoom(Number(zoomInput.value || 0));
+  zoomButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const direction = btn.getAttribute("data-zoom");
+      const step = (maxScale - minScale) * 0.12;
+      const next = direction === "in" ? scale + step : scale - step;
+      setZoom(next);
+    });
   });
 
   image.addEventListener("pointerdown", onPointerDown);
@@ -1010,9 +1016,14 @@ function setupProfileCropper() {
     activeForm.submit();
   };
 
+  const triggerUpload = () => {
+    if (activeInput) activeInput.click();
+  };
+
   backdrop.addEventListener("click", cancel);
   closeBtn.addEventListener("click", cancel);
-  cancelBtn.addEventListener("click", cancel);
+  if (undoBtn) undoBtn.addEventListener("click", resetTransform);
+  if (uploadBtn) uploadBtn.addEventListener("click", triggerUpload);
   saveBtn.addEventListener("click", save);
   document.addEventListener("keydown", (event) => {
     if (modal.classList.contains("show") && event.key === "Escape") {
