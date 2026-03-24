@@ -2465,7 +2465,7 @@ a:focus-visible {
     box-shadow: 0 16px 38px rgba(0, 0, 0, 0.35);
 }
 
-.cropper-modal {
+.profile-cropper-modal {
     position: fixed;
     inset: 0;
     display: none;
@@ -2474,17 +2474,17 @@ a:focus-visible {
     z-index: 200;
 }
 
-.cropper-modal.show {
+.profile-cropper-modal.show {
     display: flex;
 }
 
-.cropper-backdrop {
+.profile-cropper-modal .cropper-backdrop {
     position: absolute;
     inset: 0;
     background: rgba(7, 14, 22, 0.72);
 }
 
-.cropper-panel {
+.profile-cropper-modal .cropper-panel {
     position: relative;
     width: min(92vw, 720px);
     height: min(86vh, 720px);
@@ -2498,7 +2498,7 @@ a:focus-visible {
     grid-template-rows: auto 1fr auto;
 }
 
-.cropper-header {
+.profile-cropper-modal .cropper-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2507,7 +2507,7 @@ a:focus-visible {
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.cropper-close {
+.profile-cropper-modal .cropper-close {
     background: transparent;
     border: 0;
     color: inherit;
@@ -2515,19 +2515,19 @@ a:focus-visible {
     cursor: pointer;
 }
 
-.cropper-title {
+.profile-cropper-modal .cropper-title {
     font-size: 0.95rem;
     color: #d7dbde;
 }
 
-.cropper-header-actions {
+.profile-cropper-modal .cropper-header-actions {
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
-.cropper-undo,
-.cropper-upload {
+.profile-cropper-modal .cropper-undo,
+.profile-cropper-modal .cropper-upload {
     border: 0;
     background: transparent;
     color: #d7dbde;
@@ -2535,13 +2535,13 @@ a:focus-visible {
     font-size: 0.95rem;
 }
 
-.cropper-upload {
+.profile-cropper-modal .cropper-upload {
     padding: 6px 10px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.08);
 }
 
-.cropper-body {
+.profile-cropper-modal .cropper-body {
     position: relative;
     display: grid;
     place-items: center;
@@ -2550,7 +2550,7 @@ a:focus-visible {
     overflow: hidden;
 }
 
-.cropper-viewport {
+.profile-cropper-modal .cropper-viewport {
     position: relative;
     width: 100%;
     height: 100%;
@@ -2561,34 +2561,18 @@ a:focus-visible {
     touch-action: none;
 }
 
-.cropper-image {
-    position: absolute;
-    top: 0;
-    left: 0;
-    transform-origin: top left;
-    user-select: none;
-    -webkit-user-drag: none;
-    touch-action: none;
+.profile-cropper-modal .cropper-viewport .cropper-container {
+    width: 100% !important;
+    height: 100% !important;
 }
 
-.cropper-mask {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    border-radius: 0;
-    -webkit-mask-image: radial-gradient(circle at center, transparent 0 45%, #000 47%);
-    mask-image: radial-gradient(circle at center, transparent 0 45%, #000 47%);
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-    -webkit-mask-size: 100% 100%;
-    mask-size: 100% 100%;
-    -webkit-mask-position: center;
-    mask-position: center;
-    pointer-events: none;
+.profile-cropper-modal .cropper-image {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
 }
 
-
-.cropper-zoom-fab {
+.profile-cropper-modal .cropper-zoom-fab {
     position: absolute;
     right: 20px;
     top: 50%;
@@ -2597,7 +2581,7 @@ a:focus-visible {
     gap: 8px;
 }
 
-.cropper-zoom-btn {
+.profile-cropper-modal .cropper-zoom-btn {
     width: 34px;
     height: 34px;
     border-radius: 50%;
@@ -2609,7 +2593,7 @@ a:focus-visible {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
-.cropper-footer {
+.profile-cropper-modal .cropper-footer {
     display: flex;
     justify-content: flex-end;
     padding: 14px 18px;
@@ -2617,7 +2601,7 @@ a:focus-visible {
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.cropper-save {
+.profile-cropper-modal .cropper-save {
     width: 46px;
     height: 46px;
     border-radius: 50%;
@@ -2631,10 +2615,39 @@ a:focus-visible {
 }
 
 @media (max-width: 520px) {
-    .cropper-viewport {
+    .profile-cropper-modal .cropper-viewport {
         width: min(74vw, 280px);
         height: min(74vw, 280px);
     }
+}
+
+/* Cropper.js circular mask styling */
+.profile-cropper-modal .cropper-container .cropper-modal {
+    background: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(2px);
+}
+
+.profile-cropper-modal .cropper-crop-box,
+.profile-cropper-modal .cropper-view-box,
+.profile-cropper-modal .cropper-face {
+    border-radius: 50%;
+}
+
+.profile-cropper-modal .cropper-view-box {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.55);
+    outline: none;
+    overflow: hidden;
+}
+
+.profile-cropper-modal .cropper-face {
+    background: transparent;
+}
+
+.profile-cropper-modal .cropper-line,
+.profile-cropper-modal .cropper-point,
+.profile-cropper-modal .cropper-dashed,
+.profile-cropper-modal .cropper-center {
+    display: none !important;
 }
 
 /* Premium cover upload control */
