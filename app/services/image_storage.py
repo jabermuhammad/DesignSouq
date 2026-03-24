@@ -17,23 +17,23 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 
 ALLOWED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".svg"}
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
-SUPABASE_KEY = (
-    os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
-    or os.getenv("SUPABASE_ANON_KEY", "").strip()
-)
-SUPABASE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "").strip() or "design-haat"
-
 _SUPABASE_CLIENT = None
+_SUPABASE_CONFIG = (None, None)
 
 
 def _get_supabase_client():
-    global _SUPABASE_CLIENT
-    if _SUPABASE_CLIENT is not None:
-        return _SUPABASE_CLIENT
-    if not SUPABASE_URL or not SUPABASE_KEY or create_client is None:
+    global _SUPABASE_CLIENT, _SUPABASE_CONFIG
+    supabase_url = os.getenv("SUPABASE_URL", "").strip()
+    supabase_key = (
+        os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+        or os.getenv("SUPABASE_ANON_KEY", "").strip()
+    )
+    if not supabase_url or not supabase_key or create_client is None:
         return None
-    _SUPABASE_CLIENT = create_client(SUPABASE_URL, SUPABASE_KEY)
+    if _SUPABASE_CLIENT is not None and _SUPABASE_CONFIG == (supabase_url, supabase_key):
+        return _SUPABASE_CLIENT
+    _SUPABASE_CLIENT = create_client(supabase_url, supabase_key)
+    _SUPABASE_CONFIG = (supabase_url, supabase_key)
     return _SUPABASE_CLIENT
 
 
@@ -55,7 +55,6 @@ def _validate_upload(upload: UploadFile) -> tuple[str, str]:
 def save_upload_image(upload: UploadFile, folder: str = "uploads") -> str:
     suffix, content_type = _validate_upload(upload)
     client = _get_supabase_client()
-
     if client is None:
         raise HTTPException(
             status_code=500,
@@ -65,7 +64,8 @@ def save_upload_image(upload: UploadFile, folder: str = "uploads") -> str:
     file_bytes = upload.file.read()
     object_name = f"{folder.rstrip('/')}/img_{uuid4().hex[:12]}{suffix}"
 
-    result = client.storage.from_(SUPABASE_BUCKET).upload(
+    supabase_bucket = os.getenv("SUPABASE_STORAGE_BUCKET", "").strip() or "design-haat"
+    result = client.storage.from_(supabase_bucket).upload(
         object_name,
         file_bytes,
         {"content-type": content_type, "upsert": "true"},
@@ -74,7 +74,7 @@ def save_upload_image(upload: UploadFile, folder: str = "uploads") -> str:
     if isinstance(result, dict) and result.get("error"):
         raise HTTPException(status_code=500, detail="Image upload failed")
 
-    public_url = client.storage.from_(SUPABASE_BUCKET).get_public_url(object_name)
+    public_url = client.storage.from_(supabase_bucket).get_public_url(object_name)
     if isinstance(public_url, dict):
         url_value = public_url.get("publicUrl") or public_url.get("public_url")
     else:
