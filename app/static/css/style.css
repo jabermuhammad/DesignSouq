@@ -2487,7 +2487,7 @@ a:focus-visible {
 .cropper-panel {
     position: relative;
     width: min(92vw, 720px);
-    height: min(86vh, 720px);
+    height: min(88vh, 760px);
     background: #151819;
     color: #e8ecef;
     border-radius: 16px;
@@ -2502,8 +2502,8 @@ a:focus-visible {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 16px;
-    background: #1b1f21;
+    padding: 14px 20px;
+    background: #1d1f21;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -2516,8 +2516,8 @@ a:focus-visible {
 }
 
 .cropper-title {
-    font-size: 0.92rem;
-    color: #cbd2d6;
+    font-size: 0.95rem;
+    color: #d6dadd;
     letter-spacing: 0.2px;
 }
 
@@ -2558,7 +2558,7 @@ a:focus-visible {
     height: 100%;
     margin: 0;
     background: transparent;
-    border-radius: 16px;
+    border-radius: 0;
     overflow: visible;
     touch-action: none;
 }
@@ -2578,12 +2578,12 @@ a:focus-visible {
     inset: 0;
     background: rgba(0, 0, 0, 0.55);
     border-radius: 0;
-    -webkit-mask-image: radial-gradient(circle at center, transparent 0 50%, #000 52%);
-    mask-image: radial-gradient(circle at center, transparent 0 50%, #000 52%);
+    -webkit-mask-image: radial-gradient(circle at center, transparent 0 48%, #000 50%);
+    mask-image: radial-gradient(circle at center, transparent 0 48%, #000 50%);
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
-    -webkit-mask-size: 100% 100%;
-    mask-size: 100% 100%;
+    -webkit-mask-size: 92% 92%;
+    mask-size: 92% 92%;
     -webkit-mask-position: center;
     mask-position: center;
     pointer-events: none;
@@ -2619,8 +2619,8 @@ a:focus-visible {
 .cropper-footer {
     display: flex;
     justify-content: flex-end;
-    padding: 14px 18px;
-    background: #1b1f21;
+    padding: 14px 20px;
+    background: #1d1f21;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
