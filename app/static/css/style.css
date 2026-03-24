@@ -2575,7 +2575,7 @@ a:focus-visible {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.55);
-    border-radius: 16px;
+    border-radius: 0;
     -webkit-mask-image: radial-gradient(circle at center, transparent 0 45%, #000 47%);
     mask-image: radial-gradient(circle at center, transparent 0 45%, #000 47%);
     -webkit-mask-repeat: no-repeat;
