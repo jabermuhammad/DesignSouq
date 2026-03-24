@@ -807,3 +807,229 @@ function setupInfiniteScroll() {
 
 setupInfiniteScroll();
 
+function setupProfileCropper() {
+  const inputs = [
+    document.getElementById("profileImageInput"),
+    document.getElementById("viewerImageInput"),
+  ].filter(Boolean);
+
+  if (!inputs.length) return;
+
+  const modal = document.createElement("div");
+  modal.className = "cropper-modal";
+  modal.innerHTML = `
+    <div class="cropper-backdrop"></div>
+    <div class="cropper-panel" role="dialog" aria-modal="true" aria-label="Crop profile photo">
+      <div class="cropper-header">
+        <h3>Crop Profile Photo</h3>
+        <button type="button" class="cropper-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="cropper-body">
+        <div class="cropper-viewport">
+          <img class="cropper-image" alt="Crop preview">
+          <div class="cropper-frame" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="cropper-controls">
+        <label class="cropper-zoom-label">
+          Zoom
+          <input type="range" min="0" max="100" value="0" class="cropper-zoom">
+        </label>
+        <div class="cropper-actions">
+          <button type="button" class="cropper-cancel">Cancel</button>
+          <button type="button" class="cropper-save">Save</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const backdrop = modal.querySelector(".cropper-backdrop");
+  const closeBtn = modal.querySelector(".cropper-close");
+  const cancelBtn = modal.querySelector(".cropper-cancel");
+  const saveBtn = modal.querySelector(".cropper-save");
+  const zoomInput = modal.querySelector(".cropper-zoom");
+  const image = modal.querySelector(".cropper-image");
+  const viewport = modal.querySelector(".cropper-viewport");
+
+  let activeInput = null;
+  let activeForm = null;
+  let naturalWidth = 0;
+  let naturalHeight = 0;
+  let scale = 1;
+  let minScale = 1;
+  let maxScale = 3;
+  let translateX = 0;
+  let translateY = 0;
+  let startX = 0;
+  let startY = 0;
+  let originX = 0;
+  let originY = 0;
+  let dragging = false;
+
+  const openModal = () => {
+    modal.classList.add("show");
+    document.body.classList.add("no-scroll");
+  };
+
+  const closeModal = () => {
+    modal.classList.remove("show");
+    document.body.classList.remove("no-scroll");
+    if (image) image.src = "";
+    activeInput = null;
+    activeForm = null;
+    dragging = false;
+  };
+
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+  const applyTransform = () => {
+    if (!image) return;
+    image.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+  };
+
+  const resetTransform = () => {
+    const rect = viewport.getBoundingClientRect();
+    const viewportSize = rect.width;
+    minScale = Math.max(viewportSize / naturalWidth, viewportSize / naturalHeight);
+    maxScale = minScale * 3;
+    scale = minScale;
+    zoomInput.value = "0";
+
+    const scaledWidth = naturalWidth * scale;
+    const scaledHeight = naturalHeight * scale;
+    translateX = (viewportSize - scaledWidth) / 2;
+    translateY = (viewportSize - scaledHeight) / 2;
+    applyTransform();
+  };
+
+  const setZoom = (value) => {
+    const t = value / 100;
+    scale = minScale + (maxScale - minScale) * t;
+    const rect = viewport.getBoundingClientRect();
+    const viewportSize = rect.width;
+    const scaledWidth = naturalWidth * scale;
+    const scaledHeight = naturalHeight * scale;
+    translateX = clamp(translateX, viewportSize - scaledWidth, 0);
+    translateY = clamp(translateY, viewportSize - scaledHeight, 0);
+    applyTransform();
+  };
+
+  const onPointerDown = (event) => {
+    if (!image) return;
+    dragging = true;
+    startX = event.clientX;
+    startY = event.clientY;
+    originX = translateX;
+    originY = translateY;
+    image.setPointerCapture(event.pointerId);
+  };
+
+  const onPointerMove = (event) => {
+    if (!dragging) return;
+    const rect = viewport.getBoundingClientRect();
+    const viewportSize = rect.width;
+    const scaledWidth = naturalWidth * scale;
+    const scaledHeight = naturalHeight * scale;
+
+    const dx = event.clientX - startX;
+    const dy = event.clientY - startY;
+    translateX = clamp(originX + dx, viewportSize - scaledWidth, 0);
+    translateY = clamp(originY + dy, viewportSize - scaledHeight, 0);
+    applyTransform();
+  };
+
+  const onPointerUp = (event) => {
+    dragging = false;
+    if (image) image.releasePointerCapture(event.pointerId);
+  };
+
+  const buildCroppedBlob = async () => {
+    const rect = viewport.getBoundingClientRect();
+    const viewportSize = rect.width;
+    const canvasSize = 512;
+
+    const sx = Math.max(0, -translateX / scale);
+    const sy = Math.max(0, -translateY / scale);
+    const sw = Math.min(naturalWidth - sx, viewportSize / scale);
+    const sh = Math.min(naturalHeight - sy, viewportSize / scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(image, sx, sy, sw, sh, 0, 0, canvasSize, canvasSize);
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.92);
+    });
+  };
+
+  const handleFile = (input, file) => {
+    if (!file) return;
+    activeInput = input;
+    activeForm = input.form;
+    const reader = new FileReader();
+    reader.onload = () => {
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  image.addEventListener("load", () => {
+    naturalWidth = image.naturalWidth || 1;
+    naturalHeight = image.naturalHeight || 1;
+    resetTransform();
+    openModal();
+  });
+
+  zoomInput.addEventListener("input", () => {
+    setZoom(Number(zoomInput.value || 0));
+  });
+
+  image.addEventListener("pointerdown", onPointerDown);
+  image.addEventListener("pointermove", onPointerMove);
+  image.addEventListener("pointerup", onPointerUp);
+  image.addEventListener("pointercancel", onPointerUp);
+
+  const cancel = () => {
+    if (activeInput) activeInput.value = "";
+    closeModal();
+  };
+
+  const save = async () => {
+    if (!activeInput || !activeForm) return;
+    const blob = await buildCroppedBlob();
+    if (!blob) return;
+    const file = new File([blob], "profile.jpg", { type: "image/jpeg" });
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    activeInput.files = dt.files;
+    closeModal();
+    activeForm.submit();
+  };
+
+  backdrop.addEventListener("click", cancel);
+  closeBtn.addEventListener("click", cancel);
+  cancelBtn.addEventListener("click", cancel);
+  saveBtn.addEventListener("click", save);
+  document.addEventListener("keydown", (event) => {
+    if (modal.classList.contains("show") && event.key === "Escape") {
+      cancel();
+    }
+  });
+
+  inputs.forEach((input) => {
+    input.onchange = null;
+    input.removeAttribute("onchange");
+    input.addEventListener("change", () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      handleFile(input, file);
+    });
+  });
+}
+
+setupProfileCropper();
+
