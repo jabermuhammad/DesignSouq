@@ -45,7 +45,9 @@ def _validate_upload(upload: UploadFile) -> tuple[str, str]:
         raise HTTPException(status_code=400, detail="Unsupported image format")
 
     if content_type and not content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Invalid file type")
+        # Some browsers send application/octet-stream for images; trust extension if allowed.
+        if suffix not in ALLOWED_IMAGE_SUFFIXES:
+            raise HTTPException(status_code=400, detail="Invalid file type")
 
     return suffix, content_type or "application/octet-stream"
 
