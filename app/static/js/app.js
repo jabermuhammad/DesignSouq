@@ -895,6 +895,7 @@ function setupProfileCropper() {
   const resetTransform = () => {
     const rect = viewport.getBoundingClientRect();
     const viewportSize = rect.width;
+    if (!viewportSize) return;
     minScale = Math.max(viewportSize / naturalWidth, viewportSize / naturalHeight);
     maxScale = minScale * 3;
     scale = minScale;
@@ -981,8 +982,10 @@ function setupProfileCropper() {
   image.addEventListener("load", () => {
     naturalWidth = image.naturalWidth || 1;
     naturalHeight = image.naturalHeight || 1;
-    resetTransform();
     openModal();
+    requestAnimationFrame(() => {
+      resetTransform();
+    });
   });
 
   zoomButtons.forEach((btn) => {
