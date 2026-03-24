@@ -831,7 +831,7 @@ function setupProfileCropper() {
       <div class="cropper-body">
         <div class="cropper-viewport">
           <img class="cropper-image" alt="Crop preview">
-          <div class="cropper-circle-mask" aria-hidden="true"></div>
+          <div class="cropper-mask" aria-hidden="true"></div>
         </div>
         <div class="cropper-zoom-fab">
           <button type="button" class="cropper-zoom-btn" data-zoom="in" aria-label="Zoom in">+</button>

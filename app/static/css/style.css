@@ -2570,11 +2570,17 @@ a:focus-visible {
     touch-action: none;
 }
 
-.cropper-circle-mask {
+.cropper-mask {
     position: absolute;
     inset: 0;
+    background: rgba(0, 0, 0, 0.55);
     border-radius: 16px;
-    background: radial-gradient(circle at center, transparent 52%, rgba(0, 0, 0, 0.45) 54%);
+    -webkit-mask-image: radial-gradient(circle at center, transparent 0 52%, #000 54%);
+    mask-image: radial-gradient(circle at center, transparent 0 52%, #000 54%);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
     pointer-events: none;
 }
 
