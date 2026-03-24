@@ -55,10 +55,13 @@ def save_upload_image(upload: UploadFile, folder: str = "uploads") -> str:
     client = _get_supabase_client()
 
     if client is None:
-        raise HTTPException(
-            status_code=500,
-            detail="Supabase storage is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
-        )
+        local_dir = BASE_DIR / "static" / "images"
+        local_dir.mkdir(parents=True, exist_ok=True)
+        filename = f"img_{uuid4().hex[:12]}{suffix}"
+        file_path = local_dir / filename
+        file_bytes = upload.file.read()
+        file_path.write_bytes(file_bytes)
+        return f"/static/images/{filename}"
 
     file_bytes = upload.file.read()
     object_name = f"{folder.rstrip('/')}/img_{uuid4().hex[:12]}{suffix}"
