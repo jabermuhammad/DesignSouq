@@ -2482,6 +2482,7 @@ a:focus-visible {
     position: absolute;
     inset: 0;
     background: rgba(7, 14, 22, 0.72);
+    backdrop-filter: blur(2px);
 }
 
 .cropper-panel {
@@ -2578,7 +2579,8 @@ a:focus-visible {
 .cropper-mask {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
+    background-color: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(2px);
     border-radius: 0;
     -webkit-mask-image: radial-gradient(circle at center, transparent 0 50%, #000 50%);
     mask-image: radial-gradient(circle at center, transparent 0 50%, #000 50%);
