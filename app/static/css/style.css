@@ -2545,7 +2545,7 @@ a:focus-visible {
     position: relative;
     display: grid;
     place-items: center;
-    padding: 4px;
+    padding: 12px;
     background: #0f1112;
     overflow: hidden;
 }
@@ -2576,12 +2576,12 @@ a:focus-visible {
     inset: 0;
     background: rgba(0, 0, 0, 0.55);
     border-radius: 16px;
-    -webkit-mask-image: radial-gradient(circle at center, transparent 0 49%, #000 50%);
-    mask-image: radial-gradient(circle at center, transparent 0 49%, #000 50%);
+    -webkit-mask-image: radial-gradient(circle at center, transparent 0 44%, #000 46%);
+    mask-image: radial-gradient(circle at center, transparent 0 44%, #000 46%);
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
-    -webkit-mask-size: calc(100% - 8px) calc(100% - 8px);
-    mask-size: calc(100% - 8px) calc(100% - 8px);
+    -webkit-mask-size: calc(100% - 24px) calc(100% - 24px);
+    mask-size: calc(100% - 24px) calc(100% - 24px);
     -webkit-mask-position: center;
     mask-position: center;
     pointer-events: none;
