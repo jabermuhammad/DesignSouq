@@ -824,7 +824,7 @@ function setupProfileCropper() {
     <div class="profile-cropper-backdrop"></div>
     <div class="profile-cropper-panel" role="dialog" aria-modal="true" aria-label="Crop profile photo">
       <div class="profile-cropper-header">
-        <i id="profile-cropper-close" class="fas fa-times" onclick="document.querySelector('.profile-cropper-modal').style.setProperty('display', 'none', 'important'); document.body.style.overflow='auto';" style="cursor:pointer; z-index:9999;"></i>
+        <span id="profile-cropper-close" class="profile-cropper-close" aria-label="Close" onclick="cleanupAndClose()" style="cursor:pointer;">✕</span>
         <div class="profile-cropper-title">Drag the image to adjust</div>
         <button type="button" class="profile-cropper-change" onclick="onChangePhoto()">Change Photo</button>
       </div>
@@ -870,8 +870,11 @@ function setupProfileCropper() {
 
   const openModal = () => {
     modal.classList.remove("hidden");
-    modal.style.display = "flex";
     modal.classList.add("show");
+    modal.style.removeProperty("display");
+    modal.style.removeProperty("visibility");
+    modal.style.removeProperty("opacity");
+    modal.style.removeProperty("z-index");
     document.body.classList.add("no-scroll");
   };
 
@@ -908,6 +911,7 @@ function setupProfileCropper() {
     activeForm = input.form;
     const reader = new FileReader();
     reader.onload = () => {
+      console.log("Modal triggered", reader.result);
       image.src = reader.result;
     };
     reader.readAsDataURL(file);
@@ -937,12 +941,12 @@ function setupProfileCropper() {
         credentials: "same-origin",
       })
         .then((response) => {
-          if (response.ok) {
-            cleanupAndClose();
-            window.location.reload();
-          } else {
-            alert("Upload failed. Check console.");
-          }
+        if (response.ok) {
+          cleanupAndClose();
+          window.location.reload();
+        } else {
+          alert("Upload failed. Check console.");
+        }
         })
         .catch(() => {
           alert("Upload failed. Check console.");
