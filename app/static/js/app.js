@@ -986,19 +986,19 @@ function setupProfileCropper() {
     if (activeInput) activeInput.value = "";
   };
 
-  window.cleanupAndClose = cleanupAndClose;
-  window.onChangePhoto = onChangePhoto;
-
   const onClose = () => cleanupAndClose();
 
-  const onChangePhoto = () => {
+  function onChangePhoto() {
     cleanupAndClose();
     setTimeout(() => {
       if (!activeInput) return;
       activeInput.value = "";
       activeInput.click();
     }, 150);
-  };
+  }
+
+  window.cleanupAndClose = cleanupAndClose;
+  window.onChangePhoto = onChangePhoto;
 
   backdrop.addEventListener("click", onClose);
   if (closeBtn) {
