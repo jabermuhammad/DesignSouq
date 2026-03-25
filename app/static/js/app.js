@@ -956,27 +956,22 @@ function setupProfileCropper() {
   };
 
   const cleanupAndClose = () => {
-    const overlay = document.querySelector(".profile-cropper-modal");
     if (cropper) {
       cropper.destroy();
       cropper = null;
     }
-    if (overlay) {
-      overlay.classList.remove("show");
-      overlay.setAttribute(
-        "style",
-        "display: none !important; pointer-events: none !important;"
-      );
-      overlay.style.opacity = "0";
-      overlay.style.zIndex = "-9999";
+    const modal = document.querySelector(".profile-cropper-modal");
+    if (modal) {
+      modal.style.setProperty("display", "none", "important");
+      modal.classList.remove("show", "active");
+      modal.style.visibility = "hidden";
+      modal.style.opacity = "0";
+      modal.style.zIndex = "-9999";
     }
-    if (image) image.src = "";
     if (activeInput) activeInput.value = "";
-    activeInput = null;
-    activeForm = null;
-    saving = false;
-    document.body.style.overflow = "auto";
+    if (image) image.src = "";
     document.body.classList.remove("no-scroll");
+    document.body.style.overflow = "auto";
   };
 
   const onClose = () => cleanupAndClose();
@@ -988,7 +983,7 @@ function setupProfileCropper() {
       if (!targetInput) return;
       targetInput.value = "";
       targetInput.click();
-    }, 150);
+    }, 200);
   };
 
   backdrop.addEventListener("click", onClose);
