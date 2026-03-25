@@ -824,7 +824,7 @@ function setupProfileCropper() {
     <div class="profile-cropper-backdrop"></div>
     <div class="profile-cropper-panel" role="dialog" aria-modal="true" aria-label="Crop profile photo">
       <div class="profile-cropper-header">
-        <button type="button" class="profile-cropper-close" aria-label="Close">&times;</button>
+        <button type="button" id="profile-cropper-close" class="profile-cropper-close" aria-label="Close" onclick="cleanupAndClose()">&times;</button>
         <div class="profile-cropper-title">Drag the image to adjust</div>
         <button type="button" class="profile-cropper-change">Change Photo</button>
       </div>
@@ -845,7 +845,7 @@ function setupProfileCropper() {
   document.body.appendChild(modal);
 
   const backdrop = modal.querySelector(".profile-cropper-backdrop");
-  const closeBtn = modal.querySelector(".profile-cropper-close");
+  const closeBtn = modal.querySelector("#profile-cropper-close");
   const changeBtn = modal.querySelector(".profile-cropper-change");
   const saveBtn = modal.querySelector(".profile-cropper-save");
   const zoomButtons = modal.querySelectorAll(".profile-cropper-zoom-btn");
@@ -974,6 +974,8 @@ function setupProfileCropper() {
     document.body.style.overflow = "auto";
   };
 
+  window.cleanupAndClose = cleanupAndClose;
+
   const onClose = () => cleanupAndClose();
 
   const onChangePhoto = () => {
@@ -987,11 +989,20 @@ function setupProfileCropper() {
   };
 
   backdrop.addEventListener("click", onClose);
-  closeBtn.addEventListener("click", onClose);
+  if (closeBtn) {
+    closeBtn.addEventListener("click", onClose);
+  }
   changeBtn.addEventListener("click", onChangePhoto);
   saveBtn.addEventListener("click", uploadToBackend);
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
+      cleanupAndClose();
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (target && (target.closest("#profile-cropper-close") || target.innerText === "✕")) {
       cleanupAndClose();
     }
   });
