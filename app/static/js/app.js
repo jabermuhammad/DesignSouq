@@ -850,6 +850,8 @@ function setupProfileCropper() {
   const saveBtn = modal.querySelector(".profile-cropper-save");
   const zoomButtons = modal.querySelectorAll(".profile-cropper-zoom-btn");
   const image = modal.querySelector(".profile-cropper-image");
+  const cropperModal = modal;
+  const cropperImg = image;
 
   let cropper = null;
   let activeInput = null;
@@ -906,13 +908,22 @@ function setupProfileCropper() {
   };
 
   const handleFile = (input, file) => {
+    console.log("File selected:", file ? file.name : "none");
     if (!file) return;
     activeInput = input;
-    activeForm = input.form;
+    activeForm = input.closest("form");
     const reader = new FileReader();
-    reader.onload = () => {
-      console.log("Modal triggered", reader.result);
-      image.src = reader.result;
+    reader.onload = (e) => {
+      console.log("Reader loaded, opening modal...");
+      if (cropperImg) {
+        cropperImg.src = e.target.result;
+        cropperModal.classList.remove("hidden");
+        cropperModal.classList.add("show");
+        cropperModal.style.display = "flex";
+        document.body.classList.add("no-scroll");
+      } else {
+        console.error("Error: cropperImg element not found!");
+      }
     };
     reader.readAsDataURL(file);
   };
