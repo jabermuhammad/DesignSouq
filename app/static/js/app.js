@@ -814,6 +814,7 @@ function setupProfileCropper() {
   ].filter(Boolean);
 
   if (!inputs.length) return;
+  window.__profileCropperReady = true;
 
   const modal = document.createElement("div");
   modal.className = "profile-cropper-modal";

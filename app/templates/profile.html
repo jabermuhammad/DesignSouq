@@ -261,7 +261,19 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
-<script src="/static/js/app.js?v=20260325_4"></script>
+<script src="/static/js/app.js?v=20260325_5"></script>
+<script>
+(function () {
+    const input = document.getElementById('profileImageInput');
+    if (!input || !input.form) return;
+    if (window.__profileCropperReady) return;
+    input.addEventListener('change', function () {
+        if (input.files && input.files[0]) {
+            input.form.submit();
+        }
+    });
+})();
+</script>
 {% if is_owner %}
 <script>
 (function () {
