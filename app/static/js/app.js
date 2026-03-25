@@ -826,7 +826,7 @@ function setupProfileCropper() {
       <div class="profile-cropper-header">
         <span id="profile-cropper-close" class="profile-cropper-close" aria-label="Close" onclick="window.location.reload()" style="cursor:pointer;">✕</span>
         <div class="profile-cropper-title">Drag the image to adjust</div>
-        <button type="button" class="profile-cropper-change">Change Photo</button>
+        <button type="button" class="profile-cropper-change" onclick="onChangePhoto()">Change Photo</button>
       </div>
       <div class="profile-cropper-body">
         <div class="profile-cropper-viewport">
@@ -972,17 +972,26 @@ function setupProfileCropper() {
   };
 
   window.cleanupAndClose = cleanupAndClose;
+  window.onChangePhoto = onChangePhoto;
 
   const onClose = () => cleanupAndClose();
 
   const onChangePhoto = () => {
-    const targetInput = activeInput;
-    cleanupAndClose();
+    if (cropper) {
+      cropper.destroy();
+      cropper = null;
+    }
+    const modal = document.querySelector(".profile-cropper-modal");
+    if (modal) {
+      modal.style.display = "none";
+    }
+    if (activeInput) {
+      activeInput.value = "";
+    }
     setTimeout(() => {
-      if (!targetInput) return;
-      targetInput.value = "";
-      targetInput.click();
-    }, 200);
+      if (!activeInput) return;
+      activeInput.click();
+    }, 150);
   };
 
   backdrop.addEventListener("click", onClose);
