@@ -971,18 +971,30 @@ function setupProfileCropper() {
   };
 
   const cleanupAndClose = () => {
-    if (cropper) {
+    // 1. Destroy the cropper logic
+    if (typeof cropper !== "undefined" && cropper) {
       cropper.destroy();
       cropper = null;
     }
+
+    // 2. FORCE HIDE THE ENTIRE MODAL (No excuses)
     const modal = document.querySelector(".profile-cropper-modal");
     if (modal) {
-      modal.style.setProperty("display", "none", "important");
-      modal.classList.remove("show", "active");
+      // This is the absolute way to make it disappear from the screen
+      modal.setAttribute(
+        "style",
+        "display: none !important; opacity: 0 !important; visibility: hidden !important;"
+      );
     }
-    document.body.classList.remove("no-scroll");
+
+    // 3. Unlock the background scroll
     document.body.style.overflow = "auto";
+    document.body.classList.remove("no-scroll");
+
+    // 4. Clear the file input so it can be used again
     if (activeInput) activeInput.value = "";
+
+    console.log("Modal force-closed and cleaned up.");
   };
 
   const onClose = () => cleanupAndClose();
@@ -1000,9 +1012,6 @@ function setupProfileCropper() {
   window.onChangePhoto = onChangePhoto;
 
   backdrop.addEventListener("click", onClose);
-  if (closeBtn) {
-    closeBtn.addEventListener("click", onClose);
-  }
   changeBtn.addEventListener("click", onChangePhoto);
   saveBtn.addEventListener("click", uploadToBackend);
   window.addEventListener("keydown", (event) => {
@@ -1011,12 +1020,6 @@ function setupProfileCropper() {
     }
   });
 
-  document.addEventListener("click", (event) => {
-    const target = event.target;
-    if (target && (target.closest("#profile-cropper-close") || target.innerText === "✕")) {
-      cleanupAndClose();
-    }
-  });
 
   zoomButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
