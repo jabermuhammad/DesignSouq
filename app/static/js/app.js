@@ -824,7 +824,7 @@ function setupProfileCropper() {
     <div class="profile-cropper-backdrop"></div>
     <div class="profile-cropper-panel" role="dialog" aria-modal="true" aria-label="Crop profile photo">
       <div class="profile-cropper-header">
-        <span id="profile-cropper-close" class="profile-cropper-close" aria-label="Close" onclick="window.location.reload()" style="cursor:pointer;">✕</span>
+        <span id="profile-cropper-close" class="profile-cropper-close" aria-label="Close" onclick="cleanupAndClose()" style="cursor:pointer;">✕</span>
         <div class="profile-cropper-title">Drag the image to adjust</div>
         <button type="button" class="profile-cropper-change" onclick="onChangePhoto()">Change Photo</button>
       </div>
@@ -938,14 +938,10 @@ function setupProfileCropper() {
           credentials: "same-origin",
           headers: { "X-Requested-With": "XMLHttpRequest" },
         });
-        if (response.redirected) {
-          window.location.href = response.url;
-          return;
-        }
         if (!response.ok) {
           throw new Error("Upload failed");
         }
-        window.location.reload();
+        cleanupAndClose();
       } catch (err) {
         alert("Upload failed. Please try again.");
         saving = false;
@@ -960,15 +956,14 @@ function setupProfileCropper() {
       cropper.destroy();
       cropper = null;
     }
-    const modal = document.querySelector(".profile-cropper-modal") || document.getElementById("cropperModal");
+    const modal = document.querySelector(".profile-cropper-modal");
     if (modal) {
-      modal.style.display = "none";
-      modal.remove();
-      console.log("Modal Destroyed from DOM");
+      modal.classList.add("hidden");
+      modal.classList.remove("show", "active");
     }
     document.body.classList.remove("no-scroll");
     document.body.style.overflow = "auto";
-    location.reload();
+    if (activeInput) activeInput.value = "";
   };
 
   window.cleanupAndClose = cleanupAndClose;
@@ -977,19 +972,10 @@ function setupProfileCropper() {
   const onClose = () => cleanupAndClose();
 
   const onChangePhoto = () => {
-    if (cropper) {
-      cropper.destroy();
-      cropper = null;
-    }
-    const modal = document.querySelector(".profile-cropper-modal");
-    if (modal) {
-      modal.style.display = "none";
-    }
-    if (activeInput) {
-      activeInput.value = "";
-    }
+    cleanupAndClose();
     setTimeout(() => {
       if (!activeInput) return;
+      activeInput.value = "";
       activeInput.click();
     }, 150);
   };
