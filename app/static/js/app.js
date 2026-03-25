@@ -824,7 +824,7 @@ function setupProfileCropper() {
     <div class="profile-cropper-backdrop"></div>
     <div class="profile-cropper-panel" role="dialog" aria-modal="true" aria-label="Crop profile photo">
       <div class="profile-cropper-header">
-        <button type="button" id="profile-cropper-close" class="profile-cropper-close" aria-label="Close" onclick="cleanupAndClose()">&times;</button>
+        <span id="profile-cropper-close" class="profile-cropper-close" aria-label="Close" onclick="window.location.reload()" style="cursor:pointer;">✕</span>
         <div class="profile-cropper-title">Drag the image to adjust</div>
         <button type="button" class="profile-cropper-change">Change Photo</button>
       </div>
@@ -960,18 +960,15 @@ function setupProfileCropper() {
       cropper.destroy();
       cropper = null;
     }
-    const modal = document.querySelector(".profile-cropper-modal");
+    const modal = document.querySelector(".profile-cropper-modal") || document.getElementById("cropperModal");
     if (modal) {
-      modal.classList.remove("show", "active");
-      modal.style.setProperty("display", "none", "important");
-      modal.style.visibility = "hidden";
-      modal.style.opacity = "0";
-      modal.style.zIndex = "-9999";
+      modal.style.display = "none";
+      modal.remove();
+      console.log("Modal Destroyed from DOM");
     }
-    if (activeInput) activeInput.value = "";
-    if (image) image.src = "";
     document.body.classList.remove("no-scroll");
     document.body.style.overflow = "auto";
+    location.reload();
   };
 
   window.cleanupAndClose = cleanupAndClose;
