@@ -2,6 +2,7 @@ const searchInput = document.getElementById("heroSearchInput");
 const suggestionBox = document.getElementById("heroSuggestions");
 const searchClear = document.querySelector(".hero-search-clear");
 const designData = window.DESIGN_DATA || { categories: [], titles: [] };
+let isClosing = false;
 
 function escapeHtml(value) {
   return String(value || "")
@@ -971,25 +972,31 @@ function setupProfileCropper() {
   };
 
   const cleanupAndClose = () => {
-    console.log("Cleaning up cropper and closing modal...");
+    if (isClosing) return;
+    isClosing = true;
 
-    // 1. Stop and destroy cropper
+    // 1. Destroy cropper
     if (cropper) {
       cropper.destroy();
       cropper = null;
     }
 
-    // 2. Target the modal and FORCE hide it
+    // 2. Hide modal (forced)
     const modal = document.querySelector(".profile-cropper-modal");
     if (modal) {
-      modal.style.display = "none"; // Direct style for instant result
-      modal.classList.remove("show", "active"); // Class removal for sync
+      modal.style.setProperty("display", "none", "important");
+      modal.classList.remove("show", "active");
     }
 
     // 3. Reset Body & Input
-    document.body.classList.remove("no-scroll");
     document.body.style.overflow = "auto";
+    document.body.classList.remove("no-scroll");
     if (activeInput) activeInput.value = "";
+
+    // 4. Release guard
+    setTimeout(() => {
+      isClosing = false;
+    }, 500);
   };
 
   const onClose = () => cleanupAndClose();
@@ -1008,9 +1015,9 @@ function setupProfileCropper() {
 
   backdrop.addEventListener("click", onClose);
   if (closeBtn) {
-    closeBtn.onclick = cleanupAndClose; // Using .onclick to prevent multiple triggers
+    closeBtn.onclick = cleanupAndClose;
   }
-  const cancelBtn = modal.querySelector(".cancel-btn");
+  const cancelBtn = document.querySelector(".profile-cropper-modal .cancel-btn");
   if (cancelBtn) {
     cancelBtn.onclick = cleanupAndClose;
   }
