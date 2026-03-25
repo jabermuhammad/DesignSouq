@@ -818,6 +818,7 @@ function setupProfileCropper() {
   window.__profileCropperReady = true;
 
   const modal = document.createElement("div");
+  modal.id = "profileCropperModal";
   modal.className = "profile-cropper-modal";
   modal.innerHTML = `
     <div class="profile-cropper-backdrop"></div>
@@ -953,20 +954,16 @@ function setupProfileCropper() {
   };
 
   const cleanupAndClose = () => {
-    const overlay = document.querySelector(".profile-cropper-modal");
-    if (overlay) {
-      overlay.classList.remove("show");
-      overlay.style.setProperty("display", "none", "important");
-      const panel = overlay.querySelector(".profile-cropper-panel");
-      if (panel) {
-        panel.style.visibility = "hidden";
-      }
-    }
-    if (activeInput) activeInput.value = "";
+    const overlay = document.getElementById("profileCropperModal");
     if (cropper) {
       cropper.destroy();
       cropper = null;
     }
+    if (overlay) {
+      overlay.classList.remove("show");
+      overlay.style.cssText = "display: none !important; opacity: 0; visibility: hidden;";
+    }
+    if (activeInput) activeInput.value = "";
     if (image) image.src = "";
     if (activeInput) activeInput.value = "";
     activeInput = null;
