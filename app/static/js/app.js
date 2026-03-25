@@ -824,7 +824,7 @@ function setupProfileCropper() {
     <div class="profile-cropper-backdrop"></div>
     <div class="profile-cropper-panel" role="dialog" aria-modal="true" aria-label="Crop profile photo">
       <div class="profile-cropper-header">
-        <span id="profile-cropper-close" class="profile-cropper-close" aria-label="Close" onclick="cleanupAndClose()" style="cursor:pointer;">✕</span>
+        <i id="profile-cropper-close" class="fas fa-times" onclick="document.querySelector('.profile-cropper-modal').style.setProperty('display', 'none', 'important'); document.body.style.overflow='auto';" style="cursor:pointer; z-index:9999;"></i>
         <div class="profile-cropper-title">Drag the image to adjust</div>
         <button type="button" class="profile-cropper-change" onclick="onChangePhoto()">Change Photo</button>
       </div>
