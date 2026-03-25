@@ -2629,6 +2629,11 @@ a:focus-visible {
     display: none !important;
 }
 
+.profile-cropper-modal:not(.show) {
+    display: none !important;
+    visibility: hidden !important;
+}
+
 .profile-photo-viewer {
     z-index: 10000;
 }

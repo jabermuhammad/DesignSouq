@@ -956,21 +956,26 @@ function setupProfileCropper() {
   };
 
   const cleanupAndClose = () => {
-    const overlay = document.getElementById("profileCropperModal");
+    const overlay = document.querySelector(".profile-cropper-modal");
     if (cropper) {
       cropper.destroy();
       cropper = null;
     }
     if (overlay) {
       overlay.classList.remove("show");
-      overlay.classList.add("hidden");
-      overlay.style.display = "none";
+      overlay.setAttribute(
+        "style",
+        "display: none !important; pointer-events: none !important;"
+      );
+      overlay.style.opacity = "0";
+      overlay.style.zIndex = "-9999";
     }
     if (image) image.src = "";
     if (activeInput) activeInput.value = "";
     activeInput = null;
     activeForm = null;
     saving = false;
+    document.body.style.overflow = "auto";
     document.body.classList.remove("no-scroll");
   };
 
