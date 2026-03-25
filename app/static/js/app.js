@@ -941,14 +941,32 @@ function setupProfileCropper() {
     if (!activeInput || !activeForm || !cropper) return;
     const canvas = cropper.getCroppedCanvas({ width: 512, height: 512 });
     if (!canvas) return;
-    canvas.toBlob((blob) => {
+    canvas.toBlob(async (blob) => {
       if (!blob) return;
       const file = new File([blob], "profile.png", { type: "image/png" });
-      const dt = new DataTransfer();
-      dt.items.add(file);
-      activeInput.files = dt.files;
-      closeModal();
-      activeForm.submit();
+      const formData = new FormData();
+      formData.append(activeInput.name || "profile_image", file);
+      try {
+        const response = await fetch(activeForm.action, {
+          method: activeForm.method || "POST",
+          body: formData,
+          credentials: "same-origin",
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+        });
+        if (response.redirected) {
+          window.location.href = response.url;
+          return;
+        }
+        if (response.ok) {
+          window.location.reload();
+          return;
+        }
+        throw new Error("Upload failed");
+      } catch (err) {
+        // Fallback to normal form submit with the original file.
+        closeModal();
+        activeForm.submit();
+      }
     }, "image/png");
   };
 
@@ -970,6 +988,12 @@ function setupProfileCropper() {
   if (undoBtn) undoBtn.addEventListener("click", () => cropper && cropper.reset());
   if (uploadBtn) uploadBtn.addEventListener("click", triggerUpload);
   saveBtn.addEventListener("click", save);
+  document.addEventListener("click", (event) => {
+    const btn = event.target.closest(".cropper-save");
+    if (btn && modal.classList.contains("show")) {
+      save();
+    }
+  });
   document.addEventListener("keydown", (event) => {
     if (modal.classList.contains("show") && event.key === "Escape") {
       cancel();
