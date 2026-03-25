@@ -2482,6 +2482,13 @@ a:focus-visible {
     display: flex;
 }
 
+.cropper-overlay.hidden {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
 .profile-cropper-backdrop {
     position: absolute;
     inset: 0;

@@ -819,7 +819,7 @@ function setupProfileCropper() {
 
   const modal = document.createElement("div");
   modal.id = "profileCropperModal";
-  modal.className = "profile-cropper-modal";
+  modal.className = "profile-cropper-modal cropper-overlay";
   modal.innerHTML = `
     <div class="profile-cropper-backdrop"></div>
     <div class="profile-cropper-panel" role="dialog" aria-modal="true" aria-label="Crop profile photo">
@@ -869,6 +869,8 @@ function setupProfileCropper() {
   };
 
   const openModal = () => {
+    modal.classList.remove("hidden");
+    modal.style.display = "flex";
     modal.classList.add("show");
     document.body.classList.add("no-scroll");
   };
@@ -961,9 +963,9 @@ function setupProfileCropper() {
     }
     if (overlay) {
       overlay.classList.remove("show");
-      overlay.style.cssText = "display: none !important; opacity: 0; visibility: hidden;";
+      overlay.classList.add("hidden");
+      overlay.style.display = "none";
     }
-    if (activeInput) activeInput.value = "";
     if (image) image.src = "";
     if (activeInput) activeInput.value = "";
     activeInput = null;
@@ -972,9 +974,7 @@ function setupProfileCropper() {
     document.body.classList.remove("no-scroll");
   };
 
-  const onClose = () => {
-    cleanupAndClose();
-  };
+  const onClose = () => cleanupAndClose();
 
   const onChangePhoto = () => {
     const targetInput = activeInput;
