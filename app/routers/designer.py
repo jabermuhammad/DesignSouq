@@ -242,6 +242,7 @@ def upload_profile_image(
 
 @router.get("/{designer_id}/upload")
 def upload_page(request: Request, designer_id: int, db: Session = Depends(get_db)):
+    ensure_designer_owner(request, designer_id)
     designer = db.query(Designer).filter(Designer.id == designer_id).first()
     if not designer:
         raise HTTPException(status_code=404, detail="Designer not found")
@@ -286,6 +287,7 @@ def upload_project(
 
 @router.get("/{designer_id}/project/{project_id}/edit")
 def edit_page(request: Request, designer_id: int, project_id: int, db: Session = Depends(get_db)):
+    ensure_designer_owner(request, designer_id)
     designer = db.query(Designer).filter(Designer.id == designer_id).first()
     project = db.query(Project).filter(Project.id == project_id, Project.designer_id == designer_id).first()
     if not designer or not project:
