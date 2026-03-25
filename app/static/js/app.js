@@ -954,46 +954,39 @@ function setupProfileCropper() {
 
   const cleanupAndClose = () => {
     const overlay = document.querySelector(".profile-cropper-modal");
+    if (overlay) {
+      overlay.classList.remove("show");
+      overlay.style.setProperty("display", "none", "important");
+      const panel = overlay.querySelector(".profile-cropper-panel");
+      if (panel) {
+        panel.style.visibility = "hidden";
+      }
+    }
+    if (activeInput) activeInput.value = "";
     if (cropper) {
       cropper.destroy();
       cropper = null;
     }
-    if (overlay) {
-      overlay.classList.remove("show");
-      overlay.style.display = "none";
-    }
-    document.body.classList.remove("no-scroll");
     if (image) image.src = "";
     if (activeInput) activeInput.value = "";
     activeInput = null;
     activeForm = null;
     saving = false;
+    document.body.classList.remove("no-scroll");
   };
 
-  const onClose = () => cleanupAndClose();
+  const onClose = () => {
+    cleanupAndClose();
+  };
 
   const onChangePhoto = () => {
     const targetInput = activeInput;
-    if (cropper) {
-      cropper.destroy();
-      cropper = null;
-    }
-    const overlay = document.querySelector(".profile-cropper-modal");
-    if (overlay) {
-      overlay.classList.remove("show");
-      overlay.style.display = "none";
-    }
-    document.body.classList.remove("no-scroll");
-    if (image) image.src = "";
-    if (targetInput) targetInput.value = "";
-    activeInput = null;
-    activeForm = null;
-    saving = false;
+    cleanupAndClose();
     setTimeout(() => {
       if (!targetInput) return;
       targetInput.value = "";
       targetInput.click();
-    }, 100);
+    }, 150);
   };
 
   backdrop.addEventListener("click", onClose);
