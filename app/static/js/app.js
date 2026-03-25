@@ -830,7 +830,7 @@ function setupProfileCropper() {
       </div>
       <div class="profile-cropper-body">
         <div class="profile-cropper-viewport">
-          <img class="profile-cropper-image" alt="Crop preview">
+          <img id="profile-cropper-image" class="profile-cropper-image" alt="Crop preview">
         </div>
         <div class="profile-cropper-zoom">
           <button type="button" class="profile-cropper-zoom-btn" data-zoom="in" aria-label="Zoom in">+</button>
