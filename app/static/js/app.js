@@ -964,6 +964,7 @@ function setupProfileCropper() {
     if (modal) {
       modal.classList.add("hidden");
       modal.classList.remove("show", "active");
+      modal.style.setProperty("display", "none", "important");
     }
     document.body.classList.remove("no-scroll");
     document.body.style.overflow = "auto";
