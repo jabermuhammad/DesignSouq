@@ -814,13 +814,179 @@ function setupProfileCropper() {
   ].filter(Boolean);
 
   if (!inputs.length) return;
+  if (window.__profileCropperReady) return;
+  window.__profileCropperReady = true;
+
+  const modal = document.createElement("div");
+  modal.className = "profile-cropper-modal";
+  modal.innerHTML = `
+    <div class="profile-cropper-backdrop"></div>
+    <div class="profile-cropper-panel" role="dialog" aria-modal="true" aria-label="Crop profile photo">
+      <div class="profile-cropper-header">
+        <button type="button" class="profile-cropper-close" aria-label="Close">&times;</button>
+        <div class="profile-cropper-title">Drag the image to adjust</div>
+        <button type="button" class="profile-cropper-change">Change Photo</button>
+      </div>
+      <div class="profile-cropper-body">
+        <div class="profile-cropper-viewport">
+          <img class="profile-cropper-image" alt="Crop preview">
+        </div>
+        <div class="profile-cropper-zoom">
+          <button type="button" class="profile-cropper-zoom-btn" data-zoom="in" aria-label="Zoom in">+</button>
+          <button type="button" class="profile-cropper-zoom-btn" data-zoom="out" aria-label="Zoom out">−</button>
+        </div>
+      </div>
+      <div class="profile-cropper-footer">
+        <button type="button" class="profile-cropper-save" aria-label="Save">✓</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const backdrop = modal.querySelector(".profile-cropper-backdrop");
+  const closeBtn = modal.querySelector(".profile-cropper-close");
+  const changeBtn = modal.querySelector(".profile-cropper-change");
+  const saveBtn = modal.querySelector(".profile-cropper-save");
+  const zoomButtons = modal.querySelectorAll(".profile-cropper-zoom-btn");
+  const image = modal.querySelector(".profile-cropper-image");
+
+  let cropper = null;
+  let activeInput = null;
+  let activeForm = null;
+  let saving = false;
+
+  const resetState = () => {
+    if (cropper) {
+      cropper.destroy();
+      cropper = null;
+    }
+    if (image) image.src = "";
+    if (activeInput) activeInput.value = "";
+    activeInput = null;
+    activeForm = null;
+    saving = false;
+  };
+
+  const openModal = () => {
+    modal.classList.add("show");
+    document.body.classList.add("no-scroll");
+  };
+
+  const closeModal = () => {
+    modal.classList.remove("show");
+    document.body.classList.remove("no-scroll");
+    resetState();
+  };
+
+  const initCropper = () => {
+    if (cropper) {
+      cropper.destroy();
+      cropper = null;
+    }
+    cropper = new Cropper(image, {
+      aspectRatio: 1,
+      viewMode: 1,
+      dragMode: "move",
+      cropBoxMovable: false,
+      cropBoxResizable: false,
+      guides: false,
+      center: false,
+      highlight: false,
+      background: false,
+      autoCropArea: 0.9,
+      zoomOnWheel: true,
+      toggleDragModeOnDblclick: false,
+    });
+  };
+
+  const handleFile = (input, file) => {
+    if (!file) return;
+    activeInput = input;
+    activeForm = input.form;
+    const reader = new FileReader();
+    reader.onload = () => {
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  image.addEventListener("load", () => {
+    openModal();
+    setTimeout(() => {
+      initCropper();
+    }, 200);
+  });
+
+  const uploadToBackend = async () => {
+    if (!cropper || !activeForm || !activeInput || saving) return;
+    saving = true;
+    saveBtn.disabled = true;
+    saveBtn.classList.add("is-loading");
+    const canvas = cropper.getCroppedCanvas({ width: 512, height: 512 });
+    if (!canvas) return;
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      const formData = new FormData();
+      formData.append(activeInput.name || "profile_image", blob, "profile.png");
+      try {
+        const response = await fetch(activeForm.action, {
+          method: activeForm.method || "POST",
+          body: formData,
+          credentials: "same-origin",
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+        });
+        if (response.redirected) {
+          window.location.href = response.url;
+          return;
+        }
+        if (!response.ok) {
+          throw new Error("Upload failed");
+        }
+        window.location.reload();
+      } catch (err) {
+        alert("Upload failed. Please try again.");
+        saving = false;
+        saveBtn.disabled = false;
+        saveBtn.classList.remove("is-loading");
+      }
+    }, "image/png");
+  };
+
+  const onClose = () => closeModal();
+  const onChangePhoto = () => {
+    resetState();
+    if (activeInput) activeInput.click();
+  };
+
+  backdrop.addEventListener("click", onClose);
+  closeBtn.addEventListener("click", onClose);
+  changeBtn.addEventListener("click", onChangePhoto);
+  saveBtn.addEventListener("click", uploadToBackend);
+
+  zoomButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!cropper) return;
+      const dir = btn.getAttribute("data-zoom");
+      cropper.zoom(dir === "in" ? 0.1 : -0.1);
+    });
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (modal.classList.contains("show") && event.key === "Escape") {
+      onClose();
+    }
+  });
+
   inputs.forEach((input) => {
     input.onchange = null;
     input.removeAttribute("onchange");
+    input.addEventListener("click", () => {
+      input.value = "";
+    });
     input.addEventListener("change", () => {
-      if (input.files && input.files[0] && input.form) {
-        input.form.submit();
-      }
+      const file = input.files && input.files[0];
+      if (!file) return;
+      handleFile(input, file);
     });
   });
 }

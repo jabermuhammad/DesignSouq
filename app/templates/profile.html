@@ -5,8 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Designer Profile</title>
     <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg" sizes="32x32">
-    <link rel="stylesheet" href="/static/css/style.css?v=20260325_15">
+    <link rel="stylesheet" href="/static/css/style.css?v=20260325_16">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+    <style>
+        .profile-cropper-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 9999;
+        }
+        .profile-cropper-modal.active {
+            display: flex;
+        }
+        .profile-cropper-panel {
+            width: min(92vw, 520px);
+            background: #0b1016;
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+            color: #fff;
+        }
+        .profile-cropper-title {
+            margin: 0 0 12px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .profile-cropper-stage {
+            width: 100%;
+            height: min(70vw, 380px);
+            background: #0f1822;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .profile-cropper-stage img {
+            display: block;
+            max-width: 100%;
+        }
+        .profile-cropper-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 14px;
+        }
+        .profile-cropper-actions button {
+            border: none;
+            border-radius: 999px;
+            padding: 10px 18px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .profile-cropper-cancel {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+        .profile-cropper-save {
+            background: #ffffff;
+            color: #0b1016;
+        }
+    </style>
 </head>
 <body>
 <header class="topbar">
@@ -260,7 +320,22 @@
   <img id="profilePhotoImage" class="profile-photo-img" src="" alt="Profile photo preview" />
 </div>
 
-<script src="/static/js/app.js?v=20260325_6"></script>
+<div id="profileCropperModal" class="profile-cropper-modal" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="profile-cropper-panel">
+      <h3 class="profile-cropper-title">Adjust Profile Photo</h3>
+      <div class="profile-cropper-stage">
+          <img id="profileCropperImage" src="" alt="Crop profile photo">
+      </div>
+      <div class="profile-cropper-actions">
+          <button type="button" class="profile-cropper-cancel" id="cropperCancelBtn">Cancel</button>
+          <button type="button" class="profile-cropper-save" id="upload-btn">Save</button>
+      </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script src="/static/js/app.js?v=20260325_7"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 {% if is_owner %}
 <script>
 (function () {
@@ -351,6 +426,98 @@
             closeMenu();
             closePhotoViewer();
         }
+    });
+})();
+</script>
+<script>
+/* CSS for Blur & Circle Mask */
+const style = `
+.cropper-modal { opacity: 0.8 !important; background-color: #000 !important; backdrop-filter: blur(8px); }
+.cropper-view-box { border-radius: 50%; outline: 2px solid #fff; box-shadow: 0 0 0 5000px rgba(0, 0, 0, 0.5); }
+`;
+document.head.insertAdjacentHTML("beforeend", `<style>${style}</style>`);
+
+let cropper;
+function initCropper(imgElement) {
+    if (cropper) cropper.destroy(); // Memory leak fix
+    cropper = new Cropper(imgElement, {
+        aspectRatio: 1, viewMode: 1, dragMode: 'move',
+        responsive: true, wheelZoomRatio: 0.05,
+        guides: false, cropBoxMovable: false, cropBoxResizable: false
+    });
+}
+
+async function uploadToBackend() {
+    if (!cropper) return alert("Select an image first!");
+    const btn = document.getElementById('upload-btn');
+    btn.innerText = "Processing..."; btn.disabled = true;
+
+    const canvas = cropper.getCroppedCanvas({ width: 500, height: 500 });
+    canvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        formData.append('file', blob, 'profile.webp');
+        try {
+            const res = await fetch('/upload-profile', { method: 'POST', body: formData });
+            const data = await res.json();
+            if(data.success) { alert("Success!"); window.location.reload(); }
+            else { alert("Error: " + data.error); }
+        } catch (e) { alert("Upload failed!"); }
+        btn.innerText = "Save"; btn.disabled = false;
+    }, 'image/webp', 0.85);
+}
+
+(function () {
+    const input = document.getElementById('profileImageInput');
+    const modal = document.getElementById('profileCropperModal');
+    const image = document.getElementById('profileCropperImage');
+    const cancelBtn = document.getElementById('cropperCancelBtn');
+    const saveBtn = document.getElementById('upload-btn');
+    let objectUrl = null;
+
+    if (!input || !modal || !image || !cancelBtn || !saveBtn) {
+        return;
+    }
+
+    function closeModal() {
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('no-scroll');
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+            objectUrl = null;
+        }
+        image.src = '';
+        input.value = '';
+        saveBtn.innerText = "Save";
+        saveBtn.disabled = false;
+    }
+
+    function openModal() {
+        modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('no-scroll');
+    }
+
+    input.addEventListener('change', function () {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        objectUrl = URL.createObjectURL(file);
+        image.src = objectUrl;
+        openModal();
+        initCropper(image);
+    });
+
+    cancelBtn.addEventListener('click', closeModal);
+    saveBtn.addEventListener('click', uploadToBackend);
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeModal();
     });
 })();
 </script>
