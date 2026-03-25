@@ -2342,6 +2342,14 @@ a:focus-visible {
     display: block;
 }
 
+.dashboard-avatar-trigger img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+
 .dashboard-avatar-trigger:focus-visible {
     outline: 2px solid #1f3140;
     outline-offset: 2px;
@@ -2401,6 +2409,14 @@ a:focus-visible {
     display: block;
     width: 100%;
     height: 100%;
+}
+
+.profile-avatar-trigger img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
 }
 
 .profile-avatar-trigger:focus-visible {
