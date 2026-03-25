@@ -952,16 +952,59 @@ function setupProfileCropper() {
     }, "image/png");
   };
 
-  const onClose = () => closeModal();
+  const cleanupAndClose = () => {
+    const overlay = document.querySelector(".profile-cropper-modal");
+    if (cropper) {
+      cropper.destroy();
+      cropper = null;
+    }
+    if (overlay) {
+      overlay.classList.remove("show");
+      overlay.style.display = "none";
+    }
+    document.body.classList.remove("no-scroll");
+    if (image) image.src = "";
+    if (activeInput) activeInput.value = "";
+    activeInput = null;
+    activeForm = null;
+    saving = false;
+  };
+
+  const onClose = () => cleanupAndClose();
+
   const onChangePhoto = () => {
-    resetState();
-    if (activeInput) activeInput.click();
+    const targetInput = activeInput;
+    if (cropper) {
+      cropper.destroy();
+      cropper = null;
+    }
+    const overlay = document.querySelector(".profile-cropper-modal");
+    if (overlay) {
+      overlay.classList.remove("show");
+      overlay.style.display = "none";
+    }
+    document.body.classList.remove("no-scroll");
+    if (image) image.src = "";
+    if (targetInput) targetInput.value = "";
+    activeInput = null;
+    activeForm = null;
+    saving = false;
+    setTimeout(() => {
+      if (!targetInput) return;
+      targetInput.value = "";
+      targetInput.click();
+    }, 100);
   };
 
   backdrop.addEventListener("click", onClose);
   closeBtn.addEventListener("click", onClose);
   changeBtn.addEventListener("click", onChangePhoto);
   saveBtn.addEventListener("click", uploadToBackend);
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      cleanupAndClose();
+    }
+  });
 
   zoomButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -969,12 +1012,6 @@ function setupProfileCropper() {
       const dir = btn.getAttribute("data-zoom");
       cropper.zoom(dir === "in" ? 0.1 : -0.1);
     });
-  });
-
-  document.addEventListener("keydown", (event) => {
-    if (modal.classList.contains("show") && event.key === "Escape") {
-      onClose();
-    }
   });
 
   inputs.forEach((input) => {
