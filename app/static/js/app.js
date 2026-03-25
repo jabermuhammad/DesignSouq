@@ -921,33 +921,37 @@ function setupProfileCropper() {
   });
 
   const uploadToBackend = async () => {
-    if (!cropper || !activeForm || !activeInput || saving) return;
+    if (!cropper || !activeForm || saving) return;
     saving = true;
     saveBtn.disabled = true;
     saveBtn.classList.add("is-loading");
-    const canvas = cropper.getCroppedCanvas({ width: 512, height: 512 });
+    const canvas = cropper.getCroppedCanvas({ width: 400, height: 400 });
     if (!canvas) return;
-    canvas.toBlob(async (blob) => {
+    canvas.toBlob((blob) => {
       if (!blob) return;
       const formData = new FormData();
-      formData.append(activeInput.name || "profile_image", blob, "profile.png");
-      try {
-        const response = await fetch(activeForm.action, {
-          method: activeForm.method || "POST",
-          body: formData,
-          credentials: "same-origin",
-          headers: { "X-Requested-With": "XMLHttpRequest" },
+      formData.append("profile_image", blob, "profile.png");
+      fetch(activeForm.action, {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin",
+      })
+        .then((response) => {
+          if (response.ok) {
+            cleanupAndClose();
+            window.location.reload();
+          } else {
+            alert("Upload failed. Check console.");
+          }
+        })
+        .catch(() => {
+          alert("Upload failed. Check console.");
+        })
+        .finally(() => {
+          saving = false;
+          saveBtn.disabled = false;
+          saveBtn.classList.remove("is-loading");
         });
-        if (!response.ok) {
-          throw new Error("Upload failed");
-        }
-        cleanupAndClose();
-      } catch (err) {
-        alert("Upload failed. Please try again.");
-        saving = false;
-        saveBtn.disabled = false;
-        saveBtn.classList.remove("is-loading");
-      }
     }, "image/png");
   };
 
