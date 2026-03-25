@@ -971,23 +971,30 @@ function setupProfileCropper() {
   };
 
   const cleanupAndClose = () => {
-    console.log("CRITICAL: Force hiding modal now...");
-    if (cropper) {
+    // 1. Destroy the cropper logic
+    if (typeof cropper !== "undefined" && cropper) {
       cropper.destroy();
       cropper = null;
     }
 
-    // Target every possible modal element to be sure
-    const modals = document.querySelectorAll(".profile-cropper-modal");
-    modals.forEach((m) => {
-      m.style.setProperty("display", "none", "important");
-      m.style.opacity = "0";
-      m.style.visibility = "hidden";
-    });
+    // 2. FORCE HIDE THE ENTIRE MODAL (No excuses)
+    const modal = document.querySelector(".profile-cropper-modal");
+    if (modal) {
+      // This is the absolute way to make it disappear from the screen
+      modal.setAttribute(
+        "style",
+        "display: none !important; opacity: 0 !important; visibility: hidden !important;"
+      );
+    }
 
+    // 3. Unlock the background scroll
     document.body.style.overflow = "auto";
     document.body.classList.remove("no-scroll");
+
+    // 4. Clear the file input so it can be used again
     if (activeInput) activeInput.value = "";
+
+    console.log("Modal force-closed and cleaned up.");
   };
 
   const onClose = () => cleanupAndClose();
@@ -1004,12 +1011,36 @@ function setupProfileCropper() {
   window.cleanupAndClose = cleanupAndClose;
   window.onChangePhoto = onChangePhoto;
 
+  backdrop.addEventListener("click", onClose);
+  changeBtn.addEventListener("click", onChangePhoto);
+  saveBtn.addEventListener("click", uploadToBackend);
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       cleanupAndClose();
     }
   });
 
+
+  zoomButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!cropper) return;
+      const dir = btn.getAttribute("data-zoom");
+      cropper.zoom(dir === "in" ? 0.1 : -0.1);
+    });
+  });
+
+  inputs.forEach((input) => {
+    input.onchange = null;
+    input.removeAttribute("onchange");
+    input.addEventListener("click", () => {
+      input.value = "";
+    });
+    input.addEventListener("change", () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      handleFile(input, file);
+    });
+  });
 }
 
 setupProfileCropper();
