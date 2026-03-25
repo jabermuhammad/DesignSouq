@@ -962,8 +962,8 @@ function setupProfileCropper() {
     }
     const modal = document.querySelector(".profile-cropper-modal");
     if (modal) {
-      modal.style.setProperty("display", "none", "important");
       modal.classList.remove("show", "active");
+      modal.style.setProperty("display", "none", "important");
       modal.style.visibility = "hidden";
       modal.style.opacity = "0";
       modal.style.zIndex = "-9999";
