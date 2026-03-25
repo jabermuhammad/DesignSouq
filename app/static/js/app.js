@@ -979,10 +979,20 @@ function setupProfileCropper() {
   inputs.forEach((input) => {
     input.onchange = null;
     input.removeAttribute("onchange");
+    input.addEventListener("click", () => {
+      // Ensure selecting the same file still triggers change.
+      input.value = "";
+    });
     input.addEventListener("change", () => {
       const file = input.files && input.files[0];
       if (!file) return;
       handleFile(input, file);
+      // Fallback: if the modal/cropper never opens, submit the original file.
+      setTimeout(() => {
+        if (!modal.classList.contains("show") && input.files && input.files[0] && activeForm) {
+          activeForm.submit();
+        }
+      }, 800);
     });
   });
 }
