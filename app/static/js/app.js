@@ -971,15 +971,22 @@ function setupProfileCropper() {
   };
 
   const cleanupAndClose = () => {
+    console.log("Cleaning up cropper and closing modal...");
+
+    // 1. Stop and destroy cropper
     if (cropper) {
       cropper.destroy();
       cropper = null;
     }
+
+    // 2. Target the modal and FORCE hide it
     const modal = document.querySelector(".profile-cropper-modal");
     if (modal) {
-      modal.style.setProperty("display", "none", "important");
-      modal.classList.remove("show", "active");
+      modal.style.display = "none"; // Direct style for instant result
+      modal.classList.remove("show", "active"); // Class removal for sync
     }
+
+    // 3. Reset Body & Input
     document.body.classList.remove("no-scroll");
     document.body.style.overflow = "auto";
     if (activeInput) activeInput.value = "";
@@ -1001,19 +1008,16 @@ function setupProfileCropper() {
 
   backdrop.addEventListener("click", onClose);
   if (closeBtn) {
-    closeBtn.addEventListener("click", onClose);
+    closeBtn.onclick = cleanupAndClose; // Using .onclick to prevent multiple triggers
+  }
+  const cancelBtn = modal.querySelector(".cancel-btn");
+  if (cancelBtn) {
+    cancelBtn.onclick = cleanupAndClose;
   }
   changeBtn.addEventListener("click", onChangePhoto);
   saveBtn.addEventListener("click", uploadToBackend);
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
-      cleanupAndClose();
-    }
-  });
-
-  document.addEventListener("click", (event) => {
-    const target = event.target;
-    if (target && (target.closest("#profile-cropper-close") || target.innerText === "✕")) {
       cleanupAndClose();
     }
   });
