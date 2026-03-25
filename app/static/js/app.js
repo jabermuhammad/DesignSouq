@@ -941,34 +941,15 @@ function setupProfileCropper() {
     if (!activeInput || !activeForm || !cropper) return;
     const canvas = cropper.getCroppedCanvas({ width: 512, height: 512 });
     if (!canvas) return;
-    canvas.toBlob(async (blob) => {
+    canvas.toBlob((blob) => {
       if (!blob) return;
       const file = new File([blob], "profile.png", { type: "image/png" });
-      const formData = new FormData();
-      formData.append(activeInput.name || "profile_image", file);
-
-      try {
-        const response = await fetch(activeForm.action, {
-          method: activeForm.method || "POST",
-          body: formData,
-        });
-        if (response.redirected) {
-          window.location.href = response.url;
-          return;
-        }
-        if (response.ok) {
-          window.location.reload();
-          return;
-        }
-        throw new Error("Upload failed");
-      } catch (err) {
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        activeInput.files = dt.files;
-        activeForm.submit();
-      }
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      activeInput.files = dt.files;
+      closeModal();
+      activeForm.submit();
     }, "image/png");
-    closeModal();
   };
 
   const triggerUpload = () => {
