@@ -977,9 +977,8 @@ function setupProfileCropper() {
     }
     const modal = document.querySelector(".profile-cropper-modal");
     if (modal) {
-      modal.classList.add("hidden");
-      modal.classList.remove("show", "active");
       modal.style.setProperty("display", "none", "important");
+      modal.classList.remove("show", "active");
     }
     document.body.classList.remove("no-scroll");
     document.body.style.overflow = "auto";
